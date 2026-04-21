@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, SafeAreaView, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, SafeAreaView, Animated, Modal } from 'react-native';
 import FloatingWord from '../components/FloatingWord';
+import FallingWord from '../components/FallingWord';
 import { playSound, startMusic, stopMusic } from '../utils/audio';
 import { fetchSynonyms } from '../utils/datamuse';
 import { nextWord } from '../utils/wordQueue';
@@ -54,6 +55,7 @@ function ScorePopup({ id, value, onComplete }) {
 export default function GameScreen({ onGameEnd, onBack, totalScore, round, difficulty, mode, hints, onUseHint, onEarnHints, onResetHints }) {
   const config = DIFFICULTY[difficulty] ?? DIFFICULTY.medium;
   const isSurvival = mode === 'survival';
+  const isFalling = mode === 'falling';
 
   const [targetWord, setTargetWord] = useState('');
   const [words, setWords] = useState([]);
@@ -68,6 +70,7 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
 
   const [scorePopups, setScorePopups] = useState([]);
   const popupCounter = useRef(0);
+  const [showQuitModal, setShowQuitModal] = useState(false);
 
   const wordsRef = useRef([]);
   const roundScoreRef = useRef(0);
@@ -84,7 +87,7 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
   }, []);
 
   useEffect(() => {
-    if (loading || done || countdown !== null) return;
+    if (loading || done || countdown !== null || showQuitModal) return;
     if (timeLeft === 0) {
       setDone(true);
       playSound('fail');
@@ -94,7 +97,7 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
     }
     const t = setTimeout(() => setTimeLeft(n => n - 1), 1000);
     return () => clearTimeout(t);
-  }, [timeLeft, loading, done, countdown]);
+  }, [timeLeft, loading, done, countdown, showQuitModal]);
 
   useEffect(() => {
     if (countdown === null) return;
@@ -251,15 +254,15 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.statBox}>
-          <TouchableOpacity onPress={onBack} style={styles.backBtn} hitSlop={12}>
+          <TouchableOpacity onPress={() => setShowQuitModal(true)} style={styles.backBtn} hitSlop={12}>
             <Text style={styles.backBtnText}>← Back</Text>
           </TouchableOpacity>
           <Text style={styles.statLabel}>Score</Text>
           <Text style={styles.statValue}>{displayScore}</Text>
         </View>
         <View style={styles.targetBox}>
-          <Text style={[styles.roundLabel, { color: isSurvival ? '#f43f5e' : config.color }]}>
-            {isSurvival ? `Survival · ${wordsSolved} solved` : `Round ${round} · ${config.label}`}
+          <Text style={[styles.roundLabel, { color: isSurvival ? '#f43f5e' : isFalling ? '#22d3ee' : config.color }]}>
+            {isSurvival ? `Survival · ${wordsSolved} solved` : isFalling ? `Falling · Round ${round} · ${config.label}` : `Round ${round} · ${config.label}`}
           </Text>
           <Text style={styles.findLabel}>find synonyms for</Text>
           <Text style={styles.targetWord}>{targetWord}</Text>
@@ -282,8 +285,21 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
         </View>
       </View>
 
-      <View style={styles.wordArea} pointerEvents="box-none">
-        {words.map(w => (
+      <View style={styles.wordArea} pointerEvents={countdown !== null ? 'none' : 'box-none'}>
+        {words.map(w => isFalling ? (
+          <FallingWord
+            key={w.id}
+            wordId={w.id}
+            word={w.word}
+            tapped={w.tapped}
+            correct={w.correct}
+            highlighted={w.id === highlightedId}
+            onTap={handleTap}
+            screenWidth={SW}
+            screenHeight={WORD_AREA_H}
+            speedMultiplier={config.speedMultiplier}
+          />
+        ) : (
           <FloatingWord
             key={w.id}
             wordId={w.id}
@@ -316,6 +332,21 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
           <ScorePopup key={p.id} id={p.id} value={p.value} onComplete={removePopup} />
         ))}
       </View>
+
+      <Modal visible={showQuitModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>Quit round?</Text>
+            <Text style={styles.modalSub}>Your progress will be lost.</Text>
+            <TouchableOpacity style={styles.modalQuitBtn} onPress={onBack} activeOpacity={0.85}>
+              <Text style={styles.modalQuitText}>Quit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setShowQuitModal(false)} activeOpacity={0.7}>
+              <Text style={styles.modalCancelText}>Keep Playing</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -442,5 +473,57 @@ const styles = StyleSheet.create({
   countdownGo: {
     fontSize: 72,
     color: '#22c55e',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalBox: {
+    backgroundColor: '#1e1e4a',
+    borderRadius: 24,
+    paddingVertical: 32,
+    paddingHorizontal: 32,
+    alignItems: 'center',
+    width: '78%',
+    gap: 12,
+  },
+  modalTitle: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '800',
+  },
+  modalSub: {
+    color: '#a5b4fc',
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  modalQuitBtn: {
+    backgroundColor: '#ef4444',
+    borderRadius: 50,
+    paddingVertical: 14,
+    width: '100%',
+    alignItems: 'center',
+    shadowColor: '#ef4444',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  modalQuitText: {
+    color: '#fff',
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  modalCancelBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+  },
+  modalCancelText: {
+    color: '#a5b4fc',
+    fontSize: 15,
+    fontWeight: '600',
   },
 });

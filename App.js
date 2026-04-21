@@ -118,6 +118,14 @@ export default function App() {
     setScreen('home');
   }
 
+  function handlePlayAgain() {
+    setRound(1);
+    setTotalScore(0);
+    setLastResult(null);
+    setResult(null);
+    setScreen('game');
+  }
+
   return (
     <>
       <StatusBar style="light" />
@@ -157,7 +165,7 @@ export default function App() {
         />
       )}
       {screen === 'results' && (
-        <ResultsScreen result={result} onPlayAgain={handleBack} />
+        <ResultsScreen result={result} onPlayAgain={handlePlayAgain} onHome={handleBack} />
       )}
     </>
   );

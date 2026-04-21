@@ -39,7 +39,7 @@ export async function initAudio() {
     );
 
     const { sound } = await Audio.Sound.createAsync(
-      require('../assets/music/Pocket Parade Short.wav'),
+      require('../assets/music/Menu.wav'),
       { isLooping: true, volume: 0.35 }
     );
     menuMusic = sound;

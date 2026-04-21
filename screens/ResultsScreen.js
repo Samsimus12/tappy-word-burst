@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
 
-export default function ResultsScreen({ result, onPlayAgain }) {
+export default function ResultsScreen({ result, onPlayAgain, onHome }) {
   const { roundScore, totalScore, targetWord, correctFound, totalSynonyms, wrongTaps, missedSynonyms, wordsSolved, mode } = result;
   const isSurvival = mode === 'survival';
   const accuracy = totalSynonyms > 0 ? Math.round((correctFound / totalSynonyms) * 100) : 0;
@@ -10,21 +10,24 @@ export default function ResultsScreen({ result, onPlayAgain }) {
   if (isSurvival) {
     const ws = wordsSolved ?? 0;
     if (ws >= 10) { grade = 'Incredible!'; gradeColor = '#22c55e'; }
-    else if (ws >= 5) { grade = 'Great run!'; gradeColor = '#f59e0b'; }
-    else if (ws >= 2) { grade = 'Good effort!'; gradeColor = '#6366f1'; }
-    else { grade = 'Keep going!'; gradeColor = '#ef4444'; }
+    else if (ws >= 5)  { grade = 'Great run!';   gradeColor = '#f59e0b'; }
+    else if (ws >= 2)  { grade = 'Good effort!'; gradeColor = '#6366f1'; }
+    else               { grade = 'Keep going!';  gradeColor = '#ef4444'; }
   } else {
-    if (accuracy >= 80) { grade = 'So close!'; gradeColor = '#f59e0b'; }
-    else if (accuracy >= 60) { grade = 'Good effort!'; gradeColor = '#6366f1'; }
-    else if (accuracy >= 40) { grade = 'Keep trying!'; gradeColor = '#fb923c'; }
-    else { grade = 'Practice more!'; gradeColor = '#ef4444'; }
+    if (accuracy >= 80)      { grade = 'So close!';      gradeColor = '#f59e0b'; }
+    else if (accuracy >= 60) { grade = 'Good effort!';   gradeColor = '#6366f1'; }
+    else if (accuracy >= 40) { grade = 'Keep trying!';   gradeColor = '#fb923c'; }
+    else                     { grade = 'Practice more!'; gradeColor = '#ef4444'; }
   }
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.heading}>Time's Up!</Text>
-        <Text style={[styles.grade, { color: gradeColor }]}>{grade}</Text>
+      <View style={styles.content}>
+
+        <View style={styles.topSection}>
+          <Text style={styles.heading}>Time's Up!</Text>
+          <Text style={[styles.grade, { color: gradeColor }]}>{grade}</Text>
+        </View>
 
         <View style={styles.scoreBox}>
           <Text style={styles.scoreLabel}>Total Score</Text>
@@ -55,10 +58,16 @@ export default function ResultsScreen({ result, onPlayAgain }) {
           </View>
         )}
 
-        <TouchableOpacity style={styles.playBtn} onPress={onPlayAgain} activeOpacity={0.85}>
-          <Text style={styles.playBtnText}>Play Again</Text>
-        </TouchableOpacity>
-      </ScrollView>
+        <View style={styles.actions}>
+          <TouchableOpacity style={styles.playBtn} onPress={onPlayAgain} activeOpacity={0.85}>
+            <Text style={styles.playBtnText}>Play Again</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.homeBtn} onPress={onHome} activeOpacity={0.7}>
+            <Text style={styles.homeBtnText}>Back to Home</Text>
+          </TouchableOpacity>
+        </View>
+
+      </View>
     </SafeAreaView>
   );
 }
@@ -78,62 +87,64 @@ const styles = StyleSheet.create({
     backgroundColor: '#0f0f2e',
   },
   content: {
+    flex: 1,
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 24,
-    paddingTop: 40,
-    paddingBottom: 40,
+    paddingTop: 24,
+    paddingBottom: 16,
+  },
+  topSection: {
+    alignItems: 'center',
   },
   heading: {
-    fontSize: 38,
+    fontSize: 32,
     fontWeight: '800',
     color: '#fff',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   grade: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '700',
-    marginBottom: 28,
   },
   scoreBox: {
     backgroundColor: '#1e1e4a',
     borderRadius: 20,
-    paddingVertical: 24,
+    paddingVertical: 14,
     paddingHorizontal: 48,
     alignItems: 'center',
-    marginBottom: 24,
     width: '100%',
   },
   scoreLabel: {
     color: '#a5b4fc',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
   scoreValue: {
     color: '#fbbf24',
-    fontSize: 56,
+    fontSize: 48,
     fontWeight: '800',
-    marginTop: 4,
+    marginTop: 2,
   },
   roundScoreNote: {
     color: '#a5b4fc',
-    fontSize: 13,
-    marginTop: 4,
+    fontSize: 12,
+    marginTop: 2,
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 10,
     justifyContent: 'center',
-    marginBottom: 24,
     width: '100%',
   },
   tile: {
     backgroundColor: '#1e1e4a',
     borderRadius: 14,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
     alignItems: 'center',
     minWidth: '45%',
   },
@@ -142,13 +153,13 @@ const styles = StyleSheet.create({
   },
   tileValue: {
     color: '#fff',
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
   },
   tileLabel: {
     color: '#a5b4fc',
-    fontSize: 12,
-    marginTop: 4,
+    fontSize: 11,
+    marginTop: 2,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -156,38 +167,41 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: '#1e1e4a',
     borderRadius: 16,
-    padding: 18,
-    marginBottom: 28,
+    padding: 14,
   },
   missedHeading: {
     color: '#ef4444',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   missedList: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
   },
   missedChip: {
     backgroundColor: '#2d1f3a',
     borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
     borderWidth: 1,
     borderColor: '#ef4444',
   },
   missedWord: {
     color: '#fca5a5',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
+  },
+  actions: {
+    alignItems: 'center',
+    gap: 4,
   },
   playBtn: {
     backgroundColor: '#6366f1',
-    paddingVertical: 18,
+    paddingVertical: 15,
     paddingHorizontal: 64,
     borderRadius: 50,
     shadowColor: '#6366f1',
@@ -201,5 +215,14 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     letterSpacing: 1,
+  },
+  homeBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 32,
+  },
+  homeBtnText: {
+    color: '#a5b4fc',
+    fontSize: 15,
+    fontWeight: '600',
   },
 });

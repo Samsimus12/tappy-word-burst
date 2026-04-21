@@ -132,6 +132,21 @@ export default function HomeScreen({ onPlay, sfxEnabled, musicEnabled, onToggleS
           <Text style={styles.survivalBtnSub}>Solve words to add time · wrong taps cost 5s</Text>
         </TouchableOpacity>
 
+        <View style={styles.dividerRow}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>or</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
+        <TouchableOpacity
+          style={styles.fallingBtn}
+          onPress={() => onPlay(selected, 'falling')}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.fallingBtnTitle}>🌊 Falling Words</Text>
+          <Text style={styles.fallingBtnSub}>Tap synonyms as they fall</Text>
+        </TouchableOpacity>
+
         <View style={styles.settingsRow}>
           <TouchableOpacity
             style={[styles.settingsBtn, sfxEnabled && styles.settingsBtnActive]}
@@ -273,6 +288,32 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   survivalBtnSub: {
+    color: '#a5b4fc',
+    fontSize: 12,
+    marginTop: 4,
+  },
+  fallingBtn: {
+    width: '100%',
+    paddingVertical: 18,
+    paddingHorizontal: 24,
+    borderRadius: 50,
+    alignItems: 'center',
+    backgroundColor: '#0e2a3a',
+    borderWidth: 2,
+    borderColor: '#22d3ee',
+    shadowColor: '#22d3ee',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  fallingBtnTitle: {
+    color: '#22d3ee',
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  fallingBtnSub: {
     color: '#a5b4fc',
     fontSize: 12,
     marginTop: 4,
