@@ -3,7 +3,7 @@ import { Pressable, Text, StyleSheet, Animated, Easing } from 'react-native';
 
 const RAY_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315];
 
-function FloatingWord({ wordId, word, tapped, correct, highlighted, onTap, bounds, speedMultiplier = 1 }) {
+function FloatingWord({ wordId, word, tapped, correct, highlighted, onTap, bounds, speedMultiplier = 1, bubbleColor = '#3b3b8f' }) {
   const iX = useRef(Math.random() * Math.max(0, bounds.width - 130)).current;
   const iY = useRef(Math.random() * Math.max(0, bounds.height - 55)).current;
   const eX = useRef(Math.random() * Math.max(0, bounds.width - 130)).current;
@@ -104,7 +104,7 @@ function FloatingWord({ wordId, word, tapped, correct, highlighted, onTap, bound
   const rayTranslate = rayProgress.interpolate({ inputRange: [0, 1], outputRange: [0, -38] });
   const rayOpacity = rayProgress.interpolate({ inputRange: [0, 0.08, 0.7, 1], outputRange: [0, 1, 1, 0] });
 
-  const bgColor = highlighted ? '#fbbf24' : tapped ? (correct ? '#16a34a' : '#dc2626') : '#3b3b8f';
+  const bgColor = highlighted ? '#fbbf24' : tapped ? (correct ? '#16a34a' : '#dc2626') : bubbleColor;
 
   return (
     <Animated.View

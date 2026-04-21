@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
+import { ACHIEVEMENTS } from '../constants/achievements';
 
-export default function ResultsScreen({ result, onPlayAgain, onHome }) {
+export default function ResultsScreen({ result, onPlayAgain, onHome, newAchievements = [], theme }) {
   const { roundScore, totalScore, targetWord, correctFound, totalSynonyms, wrongTaps, missedSynonyms, wordsSolved, mode } = result;
   const isSurvival = mode === 'survival';
   const accuracy = totalSynonyms > 0 ? Math.round((correctFound / totalSynonyms) * 100) : 0;
@@ -20,16 +21,31 @@ export default function ResultsScreen({ result, onPlayAgain, onHome }) {
     else                     { grade = 'Practice more!'; gradeColor = '#ef4444'; }
   }
 
+  const bg = theme?.bg ?? '#0f0f2e';
+  const card = theme?.card ?? '#1e1e4a';
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: bg }]}>
       <View style={styles.content}>
+
+        {newAchievements.length > 0 && (
+          <View style={[styles.achBanner, { backgroundColor: card }]}>
+            <Text style={styles.achBannerTitle}>Achievement{newAchievements.length > 1 ? 's' : ''} unlocked!</Text>
+            {newAchievements.map(id => {
+              const a = ACHIEVEMENTS.find(x => x.id === id);
+              return a ? (
+                <Text key={id} style={styles.achBannerItem}>{a.icon} {a.label}</Text>
+              ) : null;
+            })}
+          </View>
+        )}
 
         <View style={styles.topSection}>
           <Text style={styles.heading}>Time's Up!</Text>
           <Text style={[styles.grade, { color: gradeColor }]}>{grade}</Text>
         </View>
 
-        <View style={styles.scoreBox}>
+        <View style={[styles.scoreBox, { backgroundColor: card }]}>
           <Text style={styles.scoreLabel}>Total Score</Text>
           <Text style={styles.scoreValue}>{totalScore}</Text>
           {roundScore > 0 && (
@@ -38,15 +54,15 @@ export default function ResultsScreen({ result, onPlayAgain, onHome }) {
         </View>
 
         <View style={styles.statsGrid}>
-          {isSurvival && <StatTile label="Words Solved" value={wordsSolved ?? 0} wide />}
-          <StatTile label="Last Word" value={targetWord} wide={!isSurvival} />
-          <StatTile label="Synonyms Found" value={`${correctFound} / ${totalSynonyms}`} />
-          <StatTile label="Accuracy" value={`${accuracy}%`} />
-          <StatTile label="Wrong Taps" value={wrongTaps} />
+          {isSurvival && <StatTile label="Words Solved" value={wordsSolved ?? 0} wide bg={card} />}
+          <StatTile label="Last Word" value={targetWord} wide={!isSurvival} bg={card} />
+          <StatTile label="Synonyms Found" value={`${correctFound} / ${totalSynonyms}`} bg={card} />
+          <StatTile label="Accuracy" value={`${accuracy}%`} bg={card} />
+          <StatTile label="Wrong Taps" value={wrongTaps} bg={card} />
         </View>
 
         {missedSynonyms.length > 0 && (
-          <View style={styles.missedBox}>
+          <View style={[styles.missedBox, { backgroundColor: card }]}>
             <Text style={styles.missedHeading}>Synonyms you missed</Text>
             <View style={styles.missedList}>
               {missedSynonyms.map(w => (
@@ -72,9 +88,9 @@ export default function ResultsScreen({ result, onPlayAgain, onHome }) {
   );
 }
 
-function StatTile({ label, value, wide }) {
+function StatTile({ label, value, wide, bg }) {
   return (
-    <View style={[styles.tile, wide && styles.tileWide]}>
+    <View style={[styles.tile, wide && styles.tileWide, bg && { backgroundColor: bg }]}>
       <Text style={styles.tileValue}>{value}</Text>
       <Text style={styles.tileLabel}>{label}</Text>
     </View>
@@ -84,7 +100,27 @@ function StatTile({ label, value, wide }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f0f2e',
+  },
+  achBanner: {
+    width: '100%',
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1.5,
+    borderColor: '#fbbf24',
+  },
+  achBannerTitle: {
+    color: '#fbbf24',
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  achBannerItem: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+    marginTop: 2,
   },
   content: {
     flex: 1,

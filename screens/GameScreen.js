@@ -52,7 +52,7 @@ function ScorePopup({ id, value, onComplete }) {
   );
 }
 
-export default function GameScreen({ onGameEnd, onBack, totalScore, round, difficulty, mode, hints, onUseHint, onEarnHints, onResetHints }) {
+export default function GameScreen({ onGameEnd, onBack, totalScore, round, difficulty, mode, hints, onUseHint, onEarnHints, onResetHints, theme }) {
   const config = DIFFICULTY[difficulty] ?? DIFFICULTY.medium;
   const isSurvival = mode === 'survival';
   const isFalling = mode === 'falling';
@@ -92,7 +92,7 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
       setDone(true);
       playSound('fail');
       stopMusic();
-      onGameEnd({ ...buildResult(), allFound: false });
+      onGameEnd({ ...buildResult(wordsRef.current, 0), allFound: false });
       return;
     }
     const t = setTimeout(() => setTimeLeft(n => n - 1), 1000);
@@ -117,7 +117,7 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
     return () => clearTimeout(t);
   }, [countdown]);
 
-  function buildResult(ws = wordsRef.current) {
+  function buildResult(ws = wordsRef.current, tl = null) {
     return {
       roundScore: roundScoreRef.current,
       targetWord: targetWordRef.current,
@@ -128,6 +128,7 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
       foundSynonyms: ws.filter(w => w.isSynonym && w.tapped).map(w => w.word),
       wordsSolved,
       mode,
+      timeLeft: tl ?? 0,
     };
   }
 
@@ -182,7 +183,7 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
     } else {
       setDone(true);
       playSound('success');
-      onGameEnd({ ...buildResult(), allFound: true });
+      onGameEnd({ ...buildResult(wordsRef.current, timeLeft), allFound: true });
     }
   }, [words]);
 
@@ -235,9 +236,14 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
   const foundCount = words.filter(w => w.isSynonym && w.tapped).length;
   const totalCount = words.filter(w => w.isSynonym).length;
 
+  const themeBg = theme?.bg ?? '#0f0f2e';
+  const themeHeader = theme?.header ?? '#1a1a40';
+  const themeCard = theme?.card ?? '#1e1e4a';
+  const themeBubble = theme?.bubble ?? '#3b3b8f';
+
   if (error) {
     return (
-      <SafeAreaView style={styles.center}>
+      <SafeAreaView style={[styles.center, { backgroundColor: themeBg }]}>
         <Text style={styles.errorText}>{error}</Text>
       </SafeAreaView>
     );
@@ -245,15 +251,15 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
 
   if (loading && words.length === 0) {
     return (
-      <SafeAreaView style={styles.center}>
+      <SafeAreaView style={[styles.center, { backgroundColor: themeBg }]}>
         <Text style={styles.loadingText}>Loading...</Text>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: themeBg }]}>
+      <View style={[styles.header, { backgroundColor: themeHeader, borderBottomColor: themeCard }]}>
         <View style={styles.statBox}>
           <TouchableOpacity onPress={() => setShowQuitModal(true)} style={styles.backBtn} hitSlop={12}>
             <Text style={styles.backBtnText}>← Back</Text>
@@ -299,6 +305,7 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
             screenWidth={SW}
             screenHeight={WORD_AREA_H}
             speedMultiplier={config.speedMultiplier}
+            bubbleColor={themeBubble}
           />
         ) : (
           <FloatingWord
@@ -311,6 +318,7 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
             onTap={handleTap}
             bounds={WORD_BOUNDS}
             speedMultiplier={config.speedMultiplier}
+            bubbleColor={themeBubble}
           />
         ))}
         {countdown !== null && (
@@ -336,7 +344,7 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
 
       <Modal visible={showQuitModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalBox}>
+          <View style={[styles.modalBox, { backgroundColor: themeCard }]}>
             <Text style={styles.modalTitle}>Quit round?</Text>
             <Text style={styles.modalSub}>Your progress will be lost.</Text>
             <TouchableOpacity style={styles.modalQuitBtn} onPress={onBack} activeOpacity={0.85}>

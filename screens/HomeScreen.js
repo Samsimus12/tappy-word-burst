@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Dimensions, Animated, Easing } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Dimensions, Animated, Easing, Modal } from 'react-native';
 import { DIFFICULTY } from '../constants/difficulty';
 
 const { width: SW, height: SH } = Dimensions.get('window');
@@ -75,13 +75,27 @@ function FloatingBackground() {
   );
 }
 
-export default function HomeScreen({ onPlay, sfxEnabled, musicEnabled, onToggleSfx, onToggleMusic }) {
+export default function HomeScreen({ onPlay, sfxEnabled, musicEnabled, onToggleSfx, onToggleMusic, onOpenAchievements, theme }) {
   const [selected, setSelected] = useState('medium');
+  const [showSettings, setShowSettings] = useState(false);
   const diff = DIFFICULTY[selected];
+  const bg = theme?.bg ?? '#0f0f2e';
+  const card = theme?.card ?? '#1e1e4a';
+  const accent = theme?.accent ?? '#6366f1';
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: bg }]}>
       <FloatingBackground />
+
+      <View style={styles.topBar}>
+        <TouchableOpacity onPress={onOpenAchievements} style={styles.topBarBtn} hitSlop={12} activeOpacity={0.7}>
+          <Text style={styles.topBarIcon}>🏆</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => setShowSettings(true)} style={styles.topBarBtn} hitSlop={12} activeOpacity={0.7}>
+          <Text style={styles.topBarIcon}>⚙️</Text>
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.content}>
         <Text style={styles.title}>Tappy{'\n'}Word</Text>
         <Text style={styles.subtitle}>How many synonyms can you find?</Text>
@@ -146,28 +160,51 @@ export default function HomeScreen({ onPlay, sfxEnabled, musicEnabled, onToggleS
           <Text style={styles.fallingBtnTitle}>🌊 Falling Words</Text>
           <Text style={styles.fallingBtnSub}>Tap synonyms as they fall</Text>
         </TouchableOpacity>
-
-        <View style={styles.settingsRow}>
-          <TouchableOpacity
-            style={[styles.settingsBtn, sfxEnabled && styles.settingsBtnActive]}
-            onPress={onToggleSfx}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.settingsBtnText, sfxEnabled && styles.settingsBtnTextActive]}>
-              SFX {sfxEnabled ? 'ON' : 'OFF'}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.settingsBtn, musicEnabled && styles.settingsBtnActive]}
-            onPress={onToggleMusic}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.settingsBtnText, musicEnabled && styles.settingsBtnTextActive]}>
-              Music {musicEnabled ? 'ON' : 'OFF'}
-            </Text>
-          </TouchableOpacity>
-        </View>
       </View>
+
+      <Modal visible={showSettings} transparent animationType="fade">
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowSettings(false)}>
+          <View style={[styles.settingsModal, { backgroundColor: card }]} onStartShouldSetResponder={() => true}>
+            <Text style={styles.settingsModalTitle}>Settings</Text>
+
+            <TouchableOpacity
+              style={[styles.settingsToggle, sfxEnabled && { borderColor: accent }]}
+              onPress={onToggleSfx}
+              activeOpacity={0.8}
+            >
+              <View style={styles.settingsToggleLeft}>
+                <Text style={styles.settingsToggleIcon}>🔊</Text>
+                <Text style={styles.settingsToggleLabel}>Sound Effects</Text>
+              </View>
+              <View style={[styles.pill, sfxEnabled && { backgroundColor: accent }]}>
+                <Text style={[styles.pillText, sfxEnabled && styles.pillTextOn]}>
+                  {sfxEnabled ? 'ON' : 'OFF'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.settingsToggle, musicEnabled && { borderColor: accent }]}
+              onPress={onToggleMusic}
+              activeOpacity={0.8}
+            >
+              <View style={styles.settingsToggleLeft}>
+                <Text style={styles.settingsToggleIcon}>🎵</Text>
+                <Text style={styles.settingsToggleLabel}>Music</Text>
+              </View>
+              <View style={[styles.pill, musicEnabled && { backgroundColor: accent }]}>
+                <Text style={[styles.pillText, musicEnabled && styles.pillTextOn]}>
+                  {musicEnabled ? 'ON' : 'OFF'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.settingsDoneBtn} onPress={() => setShowSettings(false)} activeOpacity={0.8}>
+              <Text style={[styles.settingsDoneText, { color: accent }]}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -175,13 +212,26 @@ export default function HomeScreen({ onPlay, sfxEnabled, musicEnabled, onToggleS
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f0f2e',
+  },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  topBarBtn: {
+    padding: 6,
+  },
+  topBarIcon: {
+    fontSize: 24,
   },
   content: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 32,
+    paddingBottom: 16,
   },
   title: {
     fontSize: 52,
@@ -318,30 +368,72 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
-  settingsRow: {
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  settingsModal: {
+    width: '82%',
+    borderRadius: 24,
+    paddingVertical: 28,
+    paddingHorizontal: 24,
+    gap: 14,
+  },
+  settingsModalTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  settingsToggle: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 24,
-  },
-  settingsBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'space-between',
     borderWidth: 1.5,
-    borderColor: '#4b4b70',
-    backgroundColor: 'transparent',
+    borderColor: '#2d2d6e',
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
   },
-  settingsBtnActive: {
-    borderColor: '#6366f1',
-    backgroundColor: '#1e1e4a',
+  settingsToggleLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
-  settingsBtnText: {
-    color: '#4b4b70',
-    fontSize: 13,
+  settingsToggleIcon: {
+    fontSize: 20,
+  },
+  settingsToggleLabel: {
+    color: '#e0e7ff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  pill: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
+    backgroundColor: '#2d2d6e',
+  },
+  pillText: {
+    color: '#6b7280',
+    fontSize: 12,
     fontWeight: '700',
     letterSpacing: 0.5,
   },
-  settingsBtnTextActive: {
-    color: '#a5b4fc',
+  pillTextOn: {
+    color: '#fff',
+  },
+  settingsDoneBtn: {
+    alignSelf: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 32,
+    marginTop: 4,
+  },
+  settingsDoneText: {
+    fontSize: 16,
+    fontWeight: '700',
   },
 });

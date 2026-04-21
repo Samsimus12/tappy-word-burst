@@ -4,11 +4,14 @@ import HomeScreen from './screens/HomeScreen';
 import GameScreen from './screens/GameScreen';
 import RoundCompleteScreen from './screens/RoundCompleteScreen';
 import ResultsScreen from './screens/ResultsScreen';
+import AchievementsScreen from './screens/AchievementsScreen';
 import { buildWordPool } from './utils/wordPool';
 import { initQueue } from './utils/wordQueue';
 import { loadHints, saveHints } from './utils/hintStorage';
 import { loadSettings, saveSettings } from './utils/settingsStorage';
+import { loadAchievementData, saveAchievementData } from './utils/achievementStorage';
 import { initAudio, setSfxEnabled, setMusicEnabled, startMenuMusic, stopMenuMusic, startMusic, stopMusic } from './utils/audio';
+import { ACHIEVEMENTS, THEMES } from './constants/achievements';
 
 export default function App() {
   const [hints, setHints] = useState(0);
@@ -17,9 +20,18 @@ export default function App() {
   const audioReady = useRef(false);
   const [screen, setScreen] = useState('home');
 
+  const [achData, setAchData] = useState({ unlockedIds: [], selectedTheme: 'default', modesPlayed: [] });
+  const achDataRef = useRef(achData);
+  useEffect(() => { achDataRef.current = achData; }, [achData]);
+
+  const [newAchievements, setNewAchievements] = useState([]);
+
+  const theme = THEMES[achData.selectedTheme] ?? THEMES.default;
+
   useEffect(() => {
     buildWordPool().then(initQueue).catch(() => {});
     loadHints().then(setHints).catch(() => {});
+    loadAchievementData().then(setAchData).catch(() => {});
     initAudio().then(() => {
       loadSettings().then(s => {
         setSfx(s.sfxEnabled);
@@ -81,6 +93,51 @@ export default function App() {
     saveHints(10).catch(() => {});
   }
 
+  function handleThemeChange(themeId) {
+    const next = { ...achDataRef.current, selectedTheme: themeId };
+    setAchData(next);
+    saveAchievementData(next).catch(() => {});
+  }
+
+  function checkAndGrantAchievements(result, finalScore, round, difficulty) {
+    const { mode, wrongTaps, wordsSolved, allFound, timeLeft } = result;
+    const current = achDataRef.current;
+
+    const newModesPlayed = Array.from(new Set([...current.modesPlayed, mode]));
+    const alreadyUnlocked = new Set(current.unlockedIds);
+    const toUnlock = [];
+
+    const check = (id, condition) => {
+      if (!alreadyUnlocked.has(id) && condition) toUnlock.push(id);
+    };
+
+    check('first_game',  true);
+    check('clean_sweep', allFound && wrongTaps === 0);
+    check('speed_demon', allFound && timeLeft >= 15);
+    check('hard_hero',   allFound && difficulty === 'hard');
+    check('explorer',    newModesPlayed.length >= 3);
+    check('survival_5',  mode === 'survival' && wordsSolved >= 5);
+    check('survival_10', mode === 'survival' && wordsSolved >= 10);
+    check('score_500',   finalScore >= 500);
+    check('score_1000',  finalScore >= 1000);
+    check('round_5',     mode === 'normal' && allFound && round >= 5);
+
+    const modesChanged = newModesPlayed.length !== current.modesPlayed.length;
+    if (toUnlock.length === 0 && !modesChanged) return;
+
+    const next = {
+      ...current,
+      unlockedIds: [...current.unlockedIds, ...toUnlock],
+      modesPlayed: newModesPlayed,
+    };
+    setAchData(next);
+    saveAchievementData(next).catch(() => {});
+
+    if (toUnlock.length > 0) {
+      setNewAchievements(toUnlock);
+    }
+  }
+
   const [round, setRound] = useState(1);
   const [totalScore, setTotalScore] = useState(0);
   const [lastResult, setLastResult] = useState(null);
@@ -91,16 +148,20 @@ export default function App() {
   function handlePlay(selectedDifficulty, selectedMode = 'normal') {
     setDifficulty(selectedDifficulty);
     setMode(selectedMode);
+    setNewAchievements([]);
     setScreen('game');
   }
 
   function handleGameEnd(gameResult) {
+    const finalScore = totalScore + gameResult.roundScore;
+    checkAndGrantAchievements(gameResult, finalScore, round, difficulty);
+
     if (gameResult.allFound) {
       setLastResult(gameResult);
       setTotalScore(prev => prev + gameResult.roundScore);
       setScreen('round-complete');
     } else {
-      setResult({ ...gameResult, totalScore: totalScore + gameResult.roundScore });
+      setResult({ ...gameResult, totalScore: finalScore });
       setScreen('results');
     }
   }
@@ -115,6 +176,7 @@ export default function App() {
     setTotalScore(0);
     setLastResult(null);
     setResult(null);
+    setNewAchievements([]);
     setScreen('home');
   }
 
@@ -123,6 +185,7 @@ export default function App() {
     setTotalScore(0);
     setLastResult(null);
     setResult(null);
+    setNewAchievements([]);
     setScreen('game');
   }
 
@@ -136,6 +199,8 @@ export default function App() {
           musicEnabled={musicEnabled}
           onToggleSfx={handleToggleSfx}
           onToggleMusic={handleToggleMusic}
+          onOpenAchievements={() => setScreen('achievements')}
+          theme={theme}
         />
       )}
       {screen === 'game' && (
@@ -151,6 +216,7 @@ export default function App() {
           onUseHint={handleUseHint}
           onEarnHints={handleEarnHints}
           onResetHints={handleResetHints}
+          theme={theme}
         />
       )}
       {screen === 'round-complete' && (
@@ -162,10 +228,27 @@ export default function App() {
           foundSynonyms={lastResult?.foundSynonyms ?? []}
           onContinue={handleContinue}
           onBack={handleBack}
+          newAchievements={newAchievements}
+          theme={theme}
         />
       )}
       {screen === 'results' && (
-        <ResultsScreen result={result} onPlayAgain={handlePlayAgain} onHome={handleBack} />
+        <ResultsScreen
+          result={result}
+          onPlayAgain={handlePlayAgain}
+          onHome={handleBack}
+          newAchievements={newAchievements}
+          theme={theme}
+        />
+      )}
+      {screen === 'achievements' && (
+        <AchievementsScreen
+          unlockedIds={achData.unlockedIds}
+          selectedTheme={achData.selectedTheme}
+          onSelectTheme={handleThemeChange}
+          onBack={() => setScreen('home')}
+          theme={theme}
+        />
       )}
     </>
   );

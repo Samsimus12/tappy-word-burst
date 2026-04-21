@@ -3,7 +3,7 @@ import { Pressable, Text, StyleSheet, Animated, Easing } from 'react-native';
 
 const RAY_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315];
 
-function FallingWord({ wordId, word, tapped, correct, highlighted, onTap, screenWidth, screenHeight, speedMultiplier = 1 }) {
+function FallingWord({ wordId, word, tapped, correct, highlighted, onTap, screenWidth, screenHeight, speedMultiplier = 1, bubbleColor = '#3b3b8f' }) {
   const x = useRef(new Animated.Value(Math.random() * Math.max(0, screenWidth - 130))).current;
   const y = useRef(new Animated.Value(-60)).current;
   const scale = useRef(new Animated.Value(1)).current;
@@ -108,7 +108,7 @@ function FallingWord({ wordId, word, tapped, correct, highlighted, onTap, screen
 
   const rayTranslate = rayProgress.interpolate({ inputRange: [0, 1], outputRange: [0, -38] });
   const rayOpacity = rayProgress.interpolate({ inputRange: [0, 0.08, 0.7, 1], outputRange: [0, 1, 1, 0] });
-  const bgColor = highlighted ? '#fbbf24' : tapped ? (correct ? '#16a34a' : '#dc2626') : '#3b3b8f';
+  const bgColor = highlighted ? '#fbbf24' : tapped ? (correct ? '#16a34a' : '#dc2626') : bubbleColor;
 
   return (
     <Animated.View

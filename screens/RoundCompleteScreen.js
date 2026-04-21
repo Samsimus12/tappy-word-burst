@@ -1,10 +1,24 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
+import { ACHIEVEMENTS } from '../constants/achievements';
 
-export default function RoundCompleteScreen({ round, roundScore, totalScore, targetWord, foundSynonyms, onContinue, onBack }) {
+export default function RoundCompleteScreen({ round, roundScore, totalScore, targetWord, foundSynonyms, onContinue, onBack, newAchievements = [], theme }) {
+  const bg = theme?.bg ?? '#0f0f2e';
+  const card = theme?.card ?? '#1e1e4a';
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: bg }]}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {newAchievements.length > 0 && (
+          <View style={[styles.achBanner, { backgroundColor: card }]}>
+            <Text style={styles.achBannerTitle}>Achievement{newAchievements.length > 1 ? 's' : ''} unlocked!</Text>
+            {newAchievements.map(id => {
+              const a = ACHIEVEMENTS.find(x => x.id === id);
+              return a ? (
+                <Text key={id} style={styles.achBannerItem}>{a.icon} {a.label}</Text>
+              ) : null;
+            })}
+          </View>
+        )}
         <Text style={styles.badge}>Round {round} Complete!</Text>
         <Text style={styles.emoji}>🎉</Text>
 
@@ -13,7 +27,7 @@ export default function RoundCompleteScreen({ round, roundScore, totalScore, tar
           <Text style={styles.word}>{targetWord}</Text>
         </View>
 
-        <View style={styles.scoresRow}>
+        <View style={[styles.scoresRow, { backgroundColor: card }]}>
           <View style={styles.scoreTile}>
             <Text style={styles.scoreTileValue}>+{roundScore}</Text>
             <Text style={styles.scoreTileLabel}>This Round</Text>
@@ -26,7 +40,7 @@ export default function RoundCompleteScreen({ round, roundScore, totalScore, tar
         </View>
 
         {foundSynonyms.length > 0 && (
-          <View style={styles.foundBox}>
+          <View style={[styles.foundBox, { backgroundColor: card }]}>
             <Text style={styles.foundHeading}>Synonyms you found</Text>
             <View style={styles.foundList}>
               {foundSynonyms.map(w => (
@@ -53,7 +67,28 @@ export default function RoundCompleteScreen({ round, roundScore, totalScore, tar
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f0f2e',
+  },
+  achBanner: {
+    width: '100%',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1.5,
+    borderColor: '#fbbf24',
+  },
+  achBannerTitle: {
+    color: '#fbbf24',
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  achBannerItem: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 2,
   },
   content: {
     alignItems: 'center',
