@@ -102,6 +102,7 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
   useEffect(() => {
     if (countdown === null) return;
     if (countdown > 0) playSound('tick');
+    if (countdown === 0) playSound('go');
     countdownScale.setValue(0.4);
     countdownOpacity.setValue(0);
     Animated.parallel([

@@ -7,6 +7,7 @@ const SOUND_FILES = {
   wrong:   require('../assets/sounds/Fail.wav'),
   hint:    require('../assets/sounds/Hint.wav'),
   tick:    require('../assets/sounds/Countdown.wav'),
+  go:      require('../assets/sounds/Go.wav'),
 };
 
 const GAME_MUSIC_FILES = [
