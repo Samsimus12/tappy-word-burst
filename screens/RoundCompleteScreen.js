@@ -1,10 +1,10 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
 
-export default function RoundCompleteScreen({ round, roundScore, totalScore, targetWord, onContinue }) {
+export default function RoundCompleteScreen({ round, roundScore, totalScore, targetWord, foundSynonyms, onContinue, onBack }) {
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.badge}>Round {round} Complete!</Text>
         <Text style={styles.emoji}>🎉</Text>
 
@@ -25,10 +25,27 @@ export default function RoundCompleteScreen({ round, roundScore, totalScore, tar
           </View>
         </View>
 
+        {foundSynonyms.length > 0 && (
+          <View style={styles.foundBox}>
+            <Text style={styles.foundHeading}>Synonyms you found</Text>
+            <View style={styles.foundList}>
+              {foundSynonyms.map(w => (
+                <View key={w} style={styles.foundChip}>
+                  <Text style={styles.foundWord}>{w}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
         <TouchableOpacity style={styles.continueBtn} onPress={onContinue} activeOpacity={0.85}>
           <Text style={styles.continueBtnText}>Continue →</Text>
         </TouchableOpacity>
-      </View>
+
+        <TouchableOpacity onPress={onBack} activeOpacity={0.6} style={styles.backLink}>
+          <Text style={styles.backLinkText}>Back to Home</Text>
+        </TouchableOpacity>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -39,10 +56,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#0f0f2e',
   },
   content: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 32,
+    paddingTop: 40,
+    paddingBottom: 40,
   },
   badge: {
     color: '#a5b4fc',
@@ -105,6 +123,49 @@ const styles = StyleSheet.create({
     height: 48,
     backgroundColor: '#2d2d6e',
     marginHorizontal: 8,
+  },
+  foundBox: {
+    width: '100%',
+    backgroundColor: '#1e1e4a',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 28,
+  },
+  foundHeading: {
+    color: '#22c55e',
+    fontSize: 13,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 12,
+  },
+  foundList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  foundChip: {
+    backgroundColor: '#14291f',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderWidth: 1,
+    borderColor: '#22c55e',
+  },
+  foundWord: {
+    color: '#86efac',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  backLink: {
+    marginTop: 16,
+    paddingVertical: 8,
+  },
+  backLinkText: {
+    color: '#6366f1',
+    fontSize: 14,
+    fontWeight: '500',
+    textDecorationLine: 'underline',
   },
   continueBtn: {
     backgroundColor: '#6366f1',

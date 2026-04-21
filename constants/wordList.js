@@ -3,6 +3,9 @@ export const BASE_WORDS = [
   'cold', 'hot', 'dark', 'bright', 'quiet', 'loud', 'old', 'young', 'funny',
   'beautiful', 'ugly', 'strong', 'weak', 'rich', 'poor', 'tired', 'afraid',
   'gentle', 'cruel', 'honest', 'lazy', 'love', 'hate', 'help', 'start', 'stop',
+  'clean', 'dirty', 'kind', 'sharp', 'smooth', 'rough', 'sweet', 'empty',
+  'full', 'heavy', 'light', 'deep', 'calm', 'wild', 'soft', 'hard', 'fresh',
+  'safe', 'plain', 'clever', 'shy', 'proud', 'greedy', 'strange',
 ];
 
 export const DISTRACTOR_WORDS = [

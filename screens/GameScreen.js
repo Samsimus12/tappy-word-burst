@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, SafeAreaView } from 'react-native';
 import FloatingWord from '../components/FloatingWord';
 import { fetchSynonyms } from '../utils/datamuse';
-import { BASE_WORDS, DISTRACTOR_WORDS } from '../constants/wordList';
+import { nextWord } from '../utils/wordQueue';
+import { DISTRACTOR_WORDS } from '../constants/wordList';
 import { FALLBACK_SYNONYMS } from '../constants/fallbackSynonyms';
 import { DIFFICULTY } from '../constants/difficulty';
 
@@ -11,7 +12,7 @@ const HEADER_H = 120;
 const FOOTER_H = 20;
 const WORD_AREA_H = SH - HEADER_H - FOOTER_H;
 
-export default function GameScreen({ onGameEnd, onBack, totalScore, round, difficulty }) {
+export default function GameScreen({ onGameEnd, onBack, totalScore, round, difficulty, hints, onUseHint, onEarnHints }) {
   const config = DIFFICULTY[difficulty] ?? DIFFICULTY.medium;
 
   const [targetWord, setTargetWord] = useState('');
@@ -21,6 +22,7 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [done, setDone] = useState(false);
+  const [highlightedId, setHighlightedId] = useState(null);
 
   const wordsRef = useRef([]);
   const roundScoreRef = useRef(0);
@@ -51,24 +53,29 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
       totalSynonyms: ws.filter(w => w.isSynonym).length,
       wrongTaps: ws.filter(w => !w.isSynonym && w.tapped).length,
       missedSynonyms: ws.filter(w => w.isSynonym && !w.tapped).map(w => w.word),
+      foundSynonyms: ws.filter(w => w.isSynonym && w.tapped).map(w => w.word),
     };
   }
 
   async function loadGame() {
-    const word = BASE_WORDS[Math.floor(Math.random() * BASE_WORDS.length)];
+    let word, synonyms;
+    let attempts = 0;
+
+    while (attempts < 5) {
+      word = nextWord();
+      synonyms = [];
+      try {
+        synonyms = await fetchSynonyms(word);
+      } catch {
+        synonyms = FALLBACK_SYNONYMS[word] ?? [];
+      }
+      if (synonyms.length === 0) synonyms = FALLBACK_SYNONYMS[word] ?? [];
+      if (synonyms.length >= config.maxSynonyms) break;
+      attempts++;
+    }
+
     setTargetWord(word);
     targetWordRef.current = word;
-
-    let synonyms = [];
-    try {
-      synonyms = await fetchSynonyms(word);
-    } catch {
-      synonyms = FALLBACK_SYNONYMS[word] ?? [];
-    }
-
-    if (synonyms.length === 0) {
-      synonyms = FALLBACK_SYNONYMS[word] ?? [];
-    }
 
     const selected = synonyms.slice(0, config.maxSynonyms);
     const synonymSet = new Set(synonyms);
@@ -86,26 +93,42 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
     setLoading(false);
   }
 
+  useEffect(() => {
+    if (done || loading || words.length === 0) return;
+    const allFound = words.filter(w => w.isSynonym).every(w => w.tapped);
+    if (allFound) {
+      setDone(true);
+      onGameEnd({ ...buildResult(), allFound: true });
+    }
+  }, [words]);
+
   function handleTap(wordId) {
+    let newScore = null;
+
     setWords(prev => {
       const updated = prev.map(w => {
         if (w.id !== wordId || w.tapped) return w;
         const correct = w.isSynonym;
         const next = Math.max(0, roundScoreRef.current + (correct ? 10 : -2));
         roundScoreRef.current = next;
-        setRoundScore(next);
+        newScore = next;
         return { ...w, tapped: true, correct };
       });
       wordsRef.current = updated;
-
-      const allFound = updated.filter(w => w.isSynonym).every(w => w.tapped);
-      if (allFound && !done) {
-        setDone(true);
-        onGameEnd({ ...buildResult(updated), allFound: true });
-      }
-
       return updated;
     });
+
+    if (newScore !== null) setRoundScore(newScore);
+  }
+
+  function handleHint() {
+    if (hints <= 0 || done) return;
+    const unfound = wordsRef.current.filter(w => w.isSynonym && !w.tapped);
+    if (unfound.length === 0) return;
+    const target = unfound[Math.floor(Math.random() * unfound.length)];
+    onUseHint();
+    setHighlightedId(target.id);
+    setTimeout(() => setHighlightedId(null), 2000);
   }
 
   const timerColor = timeLeft <= 10 ? '#ef4444' : timeLeft <= 15 ? '#fb923c' : '#fff';
@@ -152,6 +175,14 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
         <View style={styles.statBox}>
           <Text style={styles.statLabel}>Time</Text>
           <Text style={[styles.statValue, { color: timerColor }]}>{timeLeft}</Text>
+          <TouchableOpacity
+            onPress={handleHint}
+            disabled={hints <= 0 || done}
+            style={[styles.hintBtn, (hints <= 0 || done) && styles.hintBtnDisabled]}
+            hitSlop={8}
+          >
+            <Text style={styles.hintBtnText}>Hint ({hints})</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -162,6 +193,7 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
             word={w.word}
             tapped={w.tapped}
             correct={w.correct}
+            highlighted={w.id === highlightedId}
             onTap={() => handleTap(w.id)}
             bounds={{ width: SW, height: WORD_AREA_H }}
             speedMultiplier={config.speedMultiplier}
@@ -203,6 +235,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1a40',
     borderBottomWidth: 1,
     borderBottomColor: '#2d2d6e',
+  },
+  hintBtn: {
+    marginTop: 4,
+    backgroundColor: '#fbbf24',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  hintBtnDisabled: {
+    backgroundColor: '#4b4b70',
+  },
+  hintBtnText: {
+    color: '#0f0f2e',
+    fontSize: 11,
+    fontWeight: '700',
   },
   statBox: {
     alignItems: 'center',

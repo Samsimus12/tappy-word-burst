@@ -1,11 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import HomeScreen from './screens/HomeScreen';
 import GameScreen from './screens/GameScreen';
 import RoundCompleteScreen from './screens/RoundCompleteScreen';
 import ResultsScreen from './screens/ResultsScreen';
+import { buildWordPool } from './utils/wordPool';
+import { initQueue } from './utils/wordQueue';
+import { loadHints, saveHints } from './utils/hintStorage';
 
 export default function App() {
+  const [hints, setHints] = useState(0);
+
+  useEffect(() => {
+    buildWordPool().then(initQueue).catch(() => {});
+    loadHints().then(setHints).catch(() => {});
+  }, []);
+
+  function handleUseHint() {
+    const next = Math.max(0, hints - 1);
+    setHints(next);
+    saveHints(next).catch(() => {});
+  }
+
+  function handleEarnHints(amount) {
+    const next = hints + amount;
+    setHints(next);
+    saveHints(next).catch(() => {});
+  }
+
   const [screen, setScreen] = useState('home');
   const [round, setRound] = useState(1);
   const [totalScore, setTotalScore] = useState(0);
@@ -56,6 +78,9 @@ export default function App() {
           totalScore={totalScore}
           round={round}
           difficulty={difficulty}
+          hints={hints}
+          onUseHint={handleUseHint}
+          onEarnHints={handleEarnHints}
         />
       )}
       {screen === 'round-complete' && (
@@ -64,7 +89,9 @@ export default function App() {
           roundScore={lastResult?.roundScore ?? 0}
           totalScore={totalScore}
           targetWord={lastResult?.targetWord ?? ''}
+          foundSynonyms={lastResult?.foundSynonyms ?? []}
           onContinue={handleContinue}
+          onBack={handleBack}
         />
       )}
       {screen === 'results' && (
