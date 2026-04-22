@@ -116,9 +116,6 @@ export default function HomeScreen({ onPlay, sfxEnabled, musicEnabled, onToggleS
               <Text style={[styles.diffBtnText, selected === key && styles.diffBtnTextActive]}>
                 {d.label}
               </Text>
-              <Text style={[styles.diffBtnSub, selected === key && styles.diffBtnTextActive]}>
-                {d.duration}s
-              </Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -128,7 +125,7 @@ export default function HomeScreen({ onPlay, sfxEnabled, musicEnabled, onToggleS
           onPress={() => onPlay(selected, 'normal')}
           activeOpacity={0.85}
         >
-          <Text style={styles.playBtnText}>Play</Text>
+          <Text style={styles.playBtnText}>Standard Mode</Text>
         </TouchableOpacity>
 
         <View style={styles.dividerRow}>
