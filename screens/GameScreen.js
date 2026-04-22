@@ -190,31 +190,26 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
 
   const handleTap = useCallback((wordId) => {
     const target = wordsRef.current.find(w => w.id === wordId);
-    const isWrong = target && !target.tapped && !target.isSynonym;
-    let newScore = null;
+    if (!target || target.tapped) return;
+
+    const delta = target.isSynonym ? correctPointsRef.current : -wrongPenaltyRef.current;
+    const next = Math.max(0, roundScoreRef.current + delta);
+    roundScoreRef.current = next;
+    setRoundScore(next);
 
     setWords(prev => {
-      const updated = prev.map(w => {
-        if (w.id !== wordId || w.tapped) return w;
-        const correct = w.isSynonym;
-        const next = Math.max(0, roundScoreRef.current + (correct ? correctPointsRef.current : -wrongPenaltyRef.current));
-        roundScoreRef.current = next;
-        newScore = next;
-        return { ...w, tapped: true, correct };
-      });
+      const updated = prev.map(w =>
+        w.id === wordId ? { ...w, tapped: true, correct: target.isSynonym } : w
+      );
       wordsRef.current = updated;
       return updated;
     });
 
-    if (newScore !== null) setRoundScore(newScore);
-    if (isSurvival && isWrong) setTimeLeft(t => Math.max(0, t - 5));
+    if (isSurvival && !target.isSynonym) setTimeLeft(t => Math.max(0, t - 5));
 
-    if (target && !target.tapped) {
-      const delta = target.isSynonym ? correctPointsRef.current : -wrongPenaltyRef.current;
-      const pid = popupCounter.current++;
-      setScorePopups(prev => [...prev, { id: pid, value: delta }]);
-      playSound(target.isSynonym ? 'correct' : 'wrong');
-    }
+    const pid = popupCounter.current++;
+    setScorePopups(prev => [...prev, { id: pid, value: delta }]);
+    playSound(target.isSynonym ? 'correct' : 'wrong');
   }, [isSurvival]);
 
   const removePopup = useCallback((id) => {
