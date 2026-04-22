@@ -76,8 +76,8 @@ function FloatingBackground() {
 }
 
 const MODES = [
-  { key: 'normal',   label: 'Standard Mode', icon: '🎯', sub: 'Score synonyms before time runs out', color: null },
-  { key: 'survival', label: 'Survival Mode',  icon: '⚡', sub: 'Solve words to add time · wrong taps cost 5s', color: '#f43f5e' },
+  { key: 'normal',   label: 'Standard',  icon: '🎯', sub: 'Score synonyms before time runs out', color: null },
+  { key: 'survival', label: 'Survival',   icon: '⚡', sub: 'Solve words to add time · wrong taps cost 5s', color: '#f43f5e' },
   { key: 'falling',  label: 'Falling Words',  icon: '🌊', sub: 'Tap synonyms as they fall', color: '#22d3ee' },
 ];
 
