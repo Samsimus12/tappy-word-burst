@@ -9,7 +9,7 @@ cd ~/Documents/repos/tappy-word
 npx expo start --clear
 ```
 - Test on device via **Expo Go** app (App Store / Google Play)
-- Same network required, OR use `npx expo start --tunnel` to demo anywhere without being on the same network
+- Same network required, OR use `npx expo start --tunnel` to demo anywhere
 - Scan the QR code in Expo Go to load the app
 
 ## GitHub
@@ -17,7 +17,7 @@ https://github.com/Samsimus12/tappy-word
 
 ## Tech stack
 - **Expo SDK 54** with New Architecture enabled (`newArchEnabled: true`)
-- **React Native** built-in `Animated` API for floating word animations (NOT Reanimated — it caused "Exception in HostFunction" errors with this Expo config)
+- **React Native** built-in `Animated` API (NOT Reanimated — causes "Exception in HostFunction" crashes with this Expo config)
 - **expo-av** for all audio (sound effects + background music)
 - **Datamuse API** (`api.datamuse.com`) for synonym fetching — 6s timeout with AbortController
 - **AsyncStorage** for hints, settings, and achievement persistence
@@ -27,18 +27,18 @@ https://github.com/Samsimus12/tappy-word
 ```
 App.js                          # Screen state machine (home → game → round-complete → results → achievements)
 screens/
-  HomeScreen.js                 # Title, difficulty picker, 3 game modes, ⚙️ settings modal, 🏆 achievements link
-  GameScreen.js                 # Main game: floating/falling words, timer, score, sound triggers
+  HomeScreen.js                 # Difficulty picker, mode selector card, settings modal, achievements link
+  GameScreen.js                 # Main game: floating/falling words, timer, round score, sound triggers
   RoundCompleteScreen.js        # Between rounds: round score + total + found synonyms + continue
   ResultsScreen.js              # End screen: total score, missed synonyms, play again / back to home
   AchievementsScreen.js         # Achievement grid + theme selector
 components/
-  FloatingWord.js               # Animated floating word bubble (built-in Animated API) — accepts bubbleColor prop
+  FloatingWord.js               # Animated floating word bubble — accepts bubbleColor prop
   FallingWord.js                # Falling word bubble for Falling Words mode — accepts bubbleColor prop
 constants/
-  difficulty.js                 # Easy/Medium/Hard configs (duration, synonyms, distractors, speed, wrongPenalty)
-  wordList.js                   # BASE_WORDS (target words) and DISTRACTOR_WORDS pool
-  fallbackSynonyms.js           # Offline fallback synonym map for all BASE_WORDS
+  difficulty.js                 # Easy/Medium/Hard configs (duration, synonyms, distractors, speed, correctPoints, wrongPenalty)
+  wordList.js                   # BASE_WORDS (156 target words) and DISTRACTOR_WORDS (321 words)
+  fallbackSynonyms.js           # Offline fallback synonym map for original BASE_WORDS
   achievements.js               # THEMES object (8 themes) + ACHIEVEMENTS array (10 achievements)
 utils/
   datamuse.js                   # fetchSynonyms() and fetchRelatedWords() with frequency filter
@@ -49,125 +49,88 @@ utils/
   achievementStorage.js         # AsyncStorage wrapper for { unlockedIds, selectedTheme, modesPlayed }
   audio.js                      # expo-av audio manager: initAudio(), playSound(name), startMusic(), stopMusic()
 assets/
-  sounds/                       # Real WAV sound effects
-    Success.wav                 # Played on correct synonym tap + all synonyms found
-    Fail.wav                    # Played on wrong tap + timer hits 0
-    Hint.wav                    # Played when hint is used
-    Countdown.wav               # Played for each countdown number (3, 2, 1)
-    Go.wav                      # Played when "Go!" appears
-  music/                        # Background music tracks (WAV)
-    Menu.wav                    # Loops on home screen
-    Pocket Parade.wav           # Game music track 1 (randomly selected, auto-advances)
-    Tile Tap Loop.wav           # Game music track 2
-    Taploop Arcade.wav          # Game music track 3
-scripts/
-  generate-sounds.js            # Node script that regenerates placeholder WAV files (legacy)
+  sounds/                       # WAV sound effects (Success, Fail, Hint, Countdown, Go)
+  music/                        # 4 WAV tracks: Menu.wav (home loop), Pocket Parade.wav, Tile Tap Loop.wav,
+                                #   Taploop Arcade.wav, Token Pop.wav (game tracks, randomly selected)
 ```
 
 ## Game flow
-1. **HomeScreen** — pick difficulty, tap Play / Survival Mode / Falling Words
-2. **GameScreen** — countdown 3-2-1-Go!, word bubbles, timer, score popups
+1. **HomeScreen** — pick difficulty + mode, tap Play
+2. **GameScreen** — countdown 3-2-1-Go!, word bubbles, timer, round score popups
 3. **RoundCompleteScreen** — found all synonyms: round score + running total + synonyms found, Continue
 4. **GameScreen** (next round) — repeats until timer runs out
 5. **ResultsScreen** — time ran out: total score, last word stats, missed synonyms, Play Again / Back to Home
 
-**Survival Mode** — single continuous session: starts with 30s, +25s per word solved, -5s per wrong tap
+**Survival Mode** — continuous session: starts at 30s, +25s per word solved, -5s per wrong tap
 
-**Falling Words Mode** — synonyms fall top-to-bottom and recycle if missed; same timer/scoring as normal
+**Falling Words Mode** — synonyms fall top-to-bottom and recycle if missed; same timer/scoring as Standard
 
 ## Difficulty levels
 | | Easy | Medium | Hard |
 |---|---|---|---|
 | Timer | 45s | 30s | 20s |
-| Synonyms | 4 | 6 | 8 |
+| Synonyms shown | 4 | 6 | 8 |
 | Distractors | 8 | 12 | 16 |
 | Word speed | 0.6× | 1.0× | 1.6× |
-| Wrong penalty | -2 pts | -5 pts | -8 pts |
+| Correct points | +5 | +10 | +15 |
+| Wrong penalty | -2 | -5 | -8 |
+| Synonym count | shown | shown | hidden |
+
+Difficulty applies to **all three modes** — the HomeScreen mode selector color (border, arrows, label, dots, Play button) reflects the active difficulty color to make this clear. Hard mode shows "X found" instead of "X / Y found" so players don't know how many synonyms remain.
 
 ## Scoring
-- +10 per correct synonym tapped
-- -2/-5/-8 per wrong tap depending on difficulty (minimum 0 per round)
-- Score accumulates across rounds, shown live in the game header
-- Score popups (+10 green / -N red) float up from the bottom of the screen on each tap
-
-## Hints
-- Players start with 10 hints, persisted via AsyncStorage across sessions
-- Hint button shown in game header; tapping highlights a random unfound synonym for 2 seconds
-- Long-press hint button resets hint count to 10 (dev convenience)
-- Hints are a stub for future ad integration (earn hints by watching ads)
-
-## Audio
-All sounds use `expo-av` loaded via `utils/audio.js` (`initAudio()` called on app startup).
-
-**Sound events:**
-| Event | Sound |
-|---|---|
-| Correct tap | `Success.wav` |
-| Wrong tap | `Fail.wav` |
-| All synonyms found | `Success.wav` |
-| Timer hits 0 | `Fail.wav` |
-| Countdown 3/2/1 | `Countdown.wav` |
-| Hint used | `Hint.wav` |
-| "Go!" | `Go.wav` |
-| Menu screen | `Menu.wav` (looping) |
-| Game active | Random track from `music/` (auto-advances when track ends) |
-
-Music system uses a `gameMusicActive` flag so music plays seamlessly between rounds without restarting.
-SFX and Music are independently toggleable from the ⚙️ settings modal on HomeScreen, persisted via AsyncStorage.
-
-## Achievements & Themes
-
-Defined in `constants/achievements.js`. State managed in `App.js`, persisted via `utils/achievementStorage.js`.
-
-**8 Themes** (each changes bg, header, card, and word bubble colors):
-| Theme | Unlocked by |
-|---|---|
-| Cosmic (default) | Always unlocked |
-| Midnight | Clean Sweep achievement |
-| Forest | High Scorer (500 pts) |
-| Crimson | Hard Hero achievement |
-| Ocean | Explorer achievement |
-| Gold | Word Master (1000 pts) |
-| Neon | Survivor (5 survival words) |
-| Rose | On a Roll (round 5) |
-
-**10 Achievements:**
-| ID | Condition |
-|---|---|
-| `first_game` | Play any game |
-| `clean_sweep` | Finish a round with 0 wrong taps |
-| `speed_demon` | Complete a round with 15s+ remaining |
-| `hard_hero` | Complete a Hard difficulty round |
-| `explorer` | Play all 3 game modes |
-| `survival_5` | Solve 5 words in Survival Mode |
-| `survival_10` | Solve 10 words in Survival Mode |
-| `score_500` | Reach 500 total score |
-| `score_1000` | Reach 1000 total score |
-| `round_5` | Reach round 5 in Normal Mode |
-
-Achievement checking runs in `App.js` → `checkAndGrantAchievements()` after every game end. Newly unlocked achievements appear as a banner on ResultsScreen and RoundCompleteScreen.
-
-Theme is threaded through all screens via a `theme` prop. Word bubbles receive `theme.bubble` as a `bubbleColor` prop.
+- Points per correct tap scale by difficulty (+5/+10/+15), stored in `difficulty.js` as `correctPoints`
+- Wrong taps penalize -2/-5/-8 (minimum 0 per round)
+- **In-game header shows round score only** (resets each round)
+- Total accumulated score shown on RoundCompleteScreen and ResultsScreen
+- Score popups (green/red) float up from the bottom on each tap
 
 ## HomeScreen layout
-- Top bar: 🏆 (opens AchievementsScreen) | ⚙️ (opens settings modal)
-- Settings modal: SFX and Music toggles with ON/OFF pills, themed accent color
-- Main content: title, difficulty picker, Play / Survival / Falling Words buttons
-- Animated floating background words (40 words drifting with recursive animation)
+- Top bar: 🏆 (AchievementsScreen) | ⚙️ (settings modal)
+- Difficulty row: Easy / Medium / Hard pill buttons (color-coded: green/amber/red)
+- Mode selector card: ‹ [icon + name + description] › with 3 dots indicator below
+  - Modes: Standard (🎯), Survival (⚡), Falling Words (🌊)
+  - Card border, arrows, label, dots, and Play button all use `diff.color` so difficulty changes are visible across all modes
+- Single **Play** button launches `onPlay(difficulty, mode)`
+- Animated floating background words (40 words drifting with recursive Animated.timing)
+
+## Hints
+- Players start with 10 hints, persisted via AsyncStorage
+- Tapping highlights a random unfound synonym for 2 seconds; long-press resets to 10 (dev tool)
+- **Stub for AdMob rewarded ads** — future: "Watch an ad to earn hints"
+
+## Audio
+`initAudio()` called on app startup via `utils/audio.js`. Uses `Promise.allSettled` so one bad file doesn't kill all audio. SFX uses `setPositionAsync(0)` + `playAsync()` (not `replayAsync()`) for reliability.
+
+Game music randomly picks from 4 tracks and auto-advances when a track ends. `gameMusicActive` flag prevents restarts between rounds — `startMusic()` is a no-op if already playing.
 
 ## Key technical notes
-- **Animated API**: Use React Native's built-in `Animated`, NOT Reanimated (causes crashes with this Expo config)
-- **Recursive animation pattern**: FloatingBackground uses recursive `Animated.timing` callbacks, NOT `Animated.loop` — loop caused visible position snaps
-- **Music between rounds**: `gameMusicActive` flag in `audio.js` prevents restarts. `startMusic()` is a no-op if already active
-- **Screen state bug (fixed)**: `const [screen, setScreen]` MUST be declared before any `useEffect` that references it in its dependency array — Babel hoists `const` as `var undefined` otherwise
-- **Audio loading**: Uses `Promise.allSettled` (not `Promise.all`) so one bad file doesn't kill all SFX
-- **SFX playback**: Uses `setPositionAsync(0)` + `playAsync()` instead of `replayAsync()` for reliability
-- **FallingWord recycling**: Handled internally by the component — parent doesn't need to know about missed words. Uses `tappedRef` to sync animation callbacks with React state
-- **Achievement timeLeft**: `buildResult()` in GameScreen accepts a `tl` param for time remaining, used by `speed_demon` check
+- **Animated API**: Use React Native's built-in `Animated`, NOT Reanimated (crashes with this Expo config)
+- **Recursive animation**: FloatingBackground uses recursive `Animated.timing` callbacks, NOT `Animated.loop` — loop caused visible position snaps
+- **Screen state bug (fixed)**: `const [screen, setScreen]` MUST be declared before any `useEffect` that references it — Babel hoists `const` as `var undefined` otherwise
+- **FallingWord recycling**: Handled internally by the component via `tappedRef` to sync animation callbacks with React state
+- **fallbackSynonyms.js** only covers the original ~58 BASE_WORDS — the 98 newer BASE_WORDS rely on Datamuse
+
+## Pending: App Store submission
+Sam has an Apple Developer account (pending ID verification). Steps when ready:
+1. Set bundle ID in `app.json` — use `com.sammorrison.tappyword`
+2. Replace default Expo app icon and splash screen with real assets
+3. Prepare App Store screenshots (6.7" and 5.5" iPhone minimum)
+4. `npm install -g eas-cli && eas login && eas build:configure`
+5. `eas build --platform ios` — handles signing/provisioning automatically
+6. `eas submit --platform ios` or upload via Transporter
+
+## Pending: AdMob integration
+Hints are already stubbed for rewarded ads. When ready:
+1. Create AdMob account at admob.google.com, set up payments profile (pays out monthly at $100 threshold)
+2. Register the app in AdMob, generate Ad Unit IDs
+3. Install `react-native-google-mobile-ads` (has Expo config plugin support)
+4. Add AdMob app ID to `app.json`
+5. Wire rewarded ad into hint button — show ad → grant hints on completion
+6. Optionally add interstitial ads between rounds (every 2–3 rounds)
 
 ## Known issues / things to revisit
-- Datamuse occasionally returns 0 synonyms for some words — fallback dictionary covers all BASE_WORDS
-- No persistent high score storage yet (AsyncStorage would be straightforward to add)
-- No haptics yet (expo-haptics would pair well with correct/wrong tap sounds)
+- Datamuse occasionally returns 0 synonyms — fallback covers original BASE_WORDS only
+- No persistent high score yet (AsyncStorage addition would be straightforward)
+- No haptics yet (`expo-haptics` would pair well with tap sounds)
 - App icon and splash screen are still Expo defaults
-- To distribute without App Store: use `npx expo start --tunnel` for demos, or EAS Build + TestFlight for standalone install
