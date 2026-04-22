@@ -32,19 +32,74 @@ export const BASE_WORDS = [
 ];
 
 export const DISTRACTOR_WORDS = [
-  'table', 'chair', 'window', 'door', 'book', 'phone', 'water', 'fire', 'tree',
-  'road', 'cloud', 'stone', 'river', 'mountain', 'city', 'house', 'garden',
-  'ocean', 'forest', 'island', 'cat', 'dog', 'bird', 'fish', 'rabbit', 'tiger',
-  'horse', 'elephant', 'monkey', 'dolphin', 'pizza', 'bread', 'coffee', 'sugar',
-  'butter', 'pepper', 'lemon', 'apple', 'mango', 'jump', 'swim', 'cook', 'drive',
-  'write', 'paint', 'sing', 'dance', 'build', 'climb', 'north', 'south', 'east',
-  'west', 'above', 'below', 'inside', 'outside', 'science', 'history', 'music',
-  'poetry', 'language', 'culture', 'nature', 'freedom', 'justice', 'peace',
+  // household objects
+  'table', 'chair', 'window', 'door', 'book', 'phone', 'carpet', 'mirror',
+  'ladder', 'basket', 'barrel', 'candle', 'lantern', 'anchor', 'compass',
+  'blanket', 'curtain', 'cabinet', 'hammer', 'scissors', 'needle', 'bottle',
+  'bucket', 'shovel', 'bridge', 'tower', 'castle', 'temple', 'statue',
+  'fountain', 'tunnel', 'telescope', 'calendar', 'envelope', 'medal', 'trophy',
+  'coin', 'wallet', 'umbrella', 'helmet', 'glove', 'boot', 'belt', 'button',
+  'drawer', 'pillow', 'fence', 'gate',
+
+  // nature & places
+  'water', 'fire', 'tree', 'road', 'cloud', 'stone', 'river', 'mountain',
+  'city', 'house', 'garden', 'ocean', 'forest', 'island',
+  'valley', 'canyon', 'desert', 'jungle', 'meadow', 'cliff', 'cave', 'glacier',
+  'volcano', 'crater', 'marsh', 'plateau', 'lagoon', 'bay', 'creek', 'pond',
+  'dune', 'pebble', 'petal', 'thorn', 'branch', 'seed', 'bloom', 'stem',
+
+  // animals
+  'cat', 'dog', 'bird', 'fish', 'rabbit', 'tiger', 'horse', 'elephant',
+  'monkey', 'dolphin', 'wolf', 'bear', 'deer', 'snake', 'frog', 'eagle',
+  'owl', 'crow', 'swan', 'penguin', 'whale', 'shark', 'turtle', 'lizard',
+  'butterfly', 'spider', 'fox', 'lion', 'zebra', 'giraffe', 'camel', 'panda',
+  'lobster', 'beetle', 'flamingo',
+
+  // food & drink
+  'pizza', 'bread', 'coffee', 'sugar', 'butter', 'pepper', 'lemon', 'apple',
+  'mango', 'milk', 'cheese', 'honey', 'rice', 'pasta', 'soup', 'carrot',
+  'onion', 'potato', 'tomato', 'banana', 'grape', 'peach', 'cherry', 'walnut',
+  'chocolate', 'candy', 'cereal', 'yogurt', 'noodle', 'sushi',
+
+  // people & roles
+  'soldier', 'doctor', 'farmer', 'hunter', 'sailor', 'scholar', 'merchant',
+  'captain', 'pilot', 'knight', 'stranger', 'neighbor', 'rival', 'champion',
+  'veteran', 'traveler',
+
+  // action verbs (clearly not adjective synonyms)
+  'jump', 'swim', 'cook', 'drive', 'write', 'paint', 'sing', 'dance',
+  'build', 'climb', 'float', 'slide', 'crawl', 'march', 'stumble', 'shuffle',
+  'wander', 'drift', 'hover', 'spin', 'bounce', 'melt', 'carve', 'weave',
+  'peel', 'slice', 'boil', 'bake', 'pour', 'splash', 'drip', 'erupt',
+  'collapse',
+
+  // directions & positions
+  'north', 'south', 'east', 'west', 'above', 'below', 'inside', 'outside',
+
+  // abstract nouns
+  'science', 'history', 'music', 'poetry', 'language', 'culture', 'nature',
+  'freedom', 'justice', 'peace', 'shadow', 'echo', 'flame', 'storm',
+  'thunder', 'lightning', 'breeze', 'frost', 'steam', 'smoke', 'spark',
+  'ripple', 'wave', 'tide', 'rhythm', 'melody', 'harmony', 'chaos', 'order',
+  'mystery', 'legend', 'myth', 'riddle', 'symbol', 'signal', 'border',
+  'layer', 'pattern', 'texture',
+
+  // body parts
   'finger', 'shoulder', 'knee', 'ankle', 'stomach', 'brain', 'spine', 'tongue',
+
+  // time
   'summer', 'winter', 'morning', 'evening', 'century', 'decade', 'moment',
-  'future', 'memory', 'silver', 'golden', 'purple', 'orange', 'yellow', 'violet',
+  'future', 'memory', 'spring', 'autumn', 'midnight', 'noon', 'dawn', 'dusk',
+  'sunrise', 'weekend', 'season', 'holiday',
+
+  // colors & materials
+  'silver', 'golden', 'purple', 'orange', 'yellow', 'violet',
+  'plastic', 'wooden', 'crystal', 'rubber', 'copper', 'cotton', 'velvet',
+
+  // descriptive (clearly non-synonym adjectives)
   'narrow', 'hollow', 'distant', 'central', 'coastal', 'tropical', 'urban',
   'ancient', 'modern', 'digital', 'natural', 'global', 'local', 'random',
   'primary', 'secondary', 'vertical', 'circular', 'parallel', 'diagonal',
-  'plastic', 'wooden', 'crystal', 'rubber', 'copper', 'cotton', 'velvet',
+  'magnetic', 'elastic', 'acoustic', 'electric', 'atomic', 'cosmic', 'arctic',
+  'volcanic', 'lunar', 'solar', 'marine', 'thermal', 'optical', 'geometric',
 ];
