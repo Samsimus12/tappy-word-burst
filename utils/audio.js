@@ -13,6 +13,8 @@ const SOUND_FILES = {
 const GAME_MUSIC_FILES = [
   require('../assets/music/Pocket Parade.wav'),
   require('../assets/music/Tile Tap Loop.wav'),
+  require('../assets/music/Taploop Arcade.wav'),
+  require('../assets/music/Token Pop.wav'),
 ];
 
 let sounds = {};
