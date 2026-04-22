@@ -75,10 +75,19 @@ function FloatingBackground() {
   );
 }
 
+const MODES = [
+  { key: 'normal',   label: 'Standard Mode', icon: '🎯', sub: 'Score synonyms before time runs out', color: null },
+  { key: 'survival', label: 'Survival Mode',  icon: '⚡', sub: 'Solve words to add time · wrong taps cost 5s', color: '#f43f5e' },
+  { key: 'falling',  label: 'Falling Words',  icon: '🌊', sub: 'Tap synonyms as they fall', color: '#22d3ee' },
+];
+
 export default function HomeScreen({ onPlay, sfxEnabled, musicEnabled, onToggleSfx, onToggleMusic, onOpenAchievements, theme }) {
   const [selected, setSelected] = useState('medium');
+  const [modeIndex, setModeIndex] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const diff = DIFFICULTY[selected];
+  const currentMode = MODES[modeIndex];
+  const modeColor = currentMode.color ?? diff.color;
   const bg = theme?.bg ?? '#0f0f2e';
   const card = theme?.card ?? '#1e1e4a';
   const accent = theme?.accent ?? '#6366f1';
@@ -120,42 +129,40 @@ export default function HomeScreen({ onPlay, sfxEnabled, musicEnabled, onToggleS
           ))}
         </View>
 
-        <TouchableOpacity
-          style={[styles.playBtn, { backgroundColor: diff.color, shadowColor: diff.color }]}
-          onPress={() => onPlay(selected, 'normal')}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.playBtnText}>Standard Mode</Text>
-        </TouchableOpacity>
-
-        <View style={styles.dividerRow}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>or</Text>
-          <View style={styles.dividerLine} />
+        <Text style={styles.diffLabel}>Mode</Text>
+        <View style={[styles.modeSelector, { borderColor: modeColor }]}>
+          <TouchableOpacity
+            onPress={() => setModeIndex(i => (i + MODES.length - 1) % MODES.length)}
+            hitSlop={12}
+            activeOpacity={0.6}
+          >
+            <Text style={[styles.modeArrow, { color: modeColor }]}>‹</Text>
+          </TouchableOpacity>
+          <View style={styles.modeCard}>
+            <Text style={styles.modeIcon}>{currentMode.icon}</Text>
+            <Text style={[styles.modeName, { color: modeColor }]}>{currentMode.label}</Text>
+            <Text style={styles.modeSub}>{currentMode.sub}</Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => setModeIndex(i => (i + 1) % MODES.length)}
+            hitSlop={12}
+            activeOpacity={0.6}
+          >
+            <Text style={[styles.modeArrow, { color: modeColor }]}>›</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.modeDots}>
+          {MODES.map((_, i) => (
+            <View key={i} style={[styles.modeDot, i === modeIndex && { backgroundColor: modeColor }]} />
+          ))}
         </View>
 
         <TouchableOpacity
-          style={styles.survivalBtn}
-          onPress={() => onPlay(selected, 'survival')}
+          style={[styles.playBtn, { backgroundColor: modeColor, shadowColor: modeColor }]}
+          onPress={() => onPlay(selected, currentMode.key)}
           activeOpacity={0.85}
         >
-          <Text style={styles.survivalBtnTitle}>⚡ Survival Mode</Text>
-          <Text style={styles.survivalBtnSub}>Solve words to add time · wrong taps cost 5s</Text>
-        </TouchableOpacity>
-
-        <View style={styles.dividerRow}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>or</Text>
-          <View style={styles.dividerLine} />
-        </View>
-
-        <TouchableOpacity
-          style={styles.fallingBtn}
-          onPress={() => onPlay(selected, 'falling')}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.fallingBtnTitle}>🌊 Falling Words</Text>
-          <Text style={styles.fallingBtnSub}>Tap synonyms as they fall</Text>
+          <Text style={styles.playBtnText}>Play</Text>
         </TouchableOpacity>
       </View>
 
@@ -296,74 +303,52 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1,
   },
-  dividerRow: {
+  modeSelector: {
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
-    marginVertical: 20,
-    gap: 12,
+    borderWidth: 2,
+    borderRadius: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    marginBottom: 10,
+    gap: 8,
   },
-  dividerLine: {
+  modeArrow: {
+    fontSize: 32,
+    fontWeight: '700',
+    lineHeight: 36,
+    width: 24,
+    textAlign: 'center',
+  },
+  modeCard: {
     flex: 1,
-    height: 1,
+    alignItems: 'center',
+    gap: 4,
+  },
+  modeIcon: {
+    fontSize: 28,
+  },
+  modeName: {
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  modeSub: {
+    color: '#a5b4fc',
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  modeDots: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 24,
+  },
+  modeDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
     backgroundColor: '#2d2d6e',
-  },
-  dividerText: {
-    color: '#4b4b70',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  survivalBtn: {
-    width: '100%',
-    paddingVertical: 18,
-    paddingHorizontal: 24,
-    borderRadius: 50,
-    alignItems: 'center',
-    backgroundColor: '#1e1e4a',
-    borderWidth: 2,
-    borderColor: '#f43f5e',
-    shadowColor: '#f43f5e',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 8,
-  },
-  survivalBtnTitle: {
-    color: '#f43f5e',
-    fontSize: 20,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  survivalBtnSub: {
-    color: '#a5b4fc',
-    fontSize: 12,
-    marginTop: 4,
-  },
-  fallingBtn: {
-    width: '100%',
-    paddingVertical: 18,
-    paddingHorizontal: 24,
-    borderRadius: 50,
-    alignItems: 'center',
-    backgroundColor: '#0e2a3a',
-    borderWidth: 2,
-    borderColor: '#22d3ee',
-    shadowColor: '#22d3ee',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 8,
-  },
-  fallingBtnTitle: {
-    color: '#22d3ee',
-    fontSize: 20,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  fallingBtnSub: {
-    color: '#a5b4fc',
-    fontSize: 12,
-    marginTop: 4,
   },
   modalOverlay: {
     flex: 1,
