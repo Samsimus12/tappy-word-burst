@@ -8,6 +8,7 @@ import { nextWord } from '../utils/wordQueue';
 import { DISTRACTOR_WORDS } from '../constants/wordList';
 import { FALLBACK_SYNONYMS } from '../constants/fallbackSynonyms';
 import { DIFFICULTY } from '../constants/difficulty';
+import { showRewardedAd } from '../utils/admob';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 const HEADER_H = 120;
@@ -71,6 +72,7 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
   const [scorePopups, setScorePopups] = useState([]);
   const popupCounter = useRef(0);
   const [showQuitModal, setShowQuitModal] = useState(false);
+  const [adLoading, setAdLoading] = useState(false);
 
   const wordsRef = useRef([]);
   const roundScoreRef = useRef(0);
@@ -227,6 +229,14 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
     setTimeout(() => setHighlightedId(null), 2000);
   }
 
+  async function handleWatchAd() {
+    if (done || adLoading) return;
+    setAdLoading(true);
+    const earned = await showRewardedAd();
+    setAdLoading(false);
+    if (earned) onEarnHints(3);
+  }
+
   const timerColor = timeLeft <= 10 ? '#ef4444' : timeLeft <= 15 ? '#fb923c' : '#fff';
 const foundCount = words.filter(w => w.isSynonym && w.tapped).length;
   const totalCount = words.filter(w => w.isSynonym).length;
@@ -276,13 +286,15 @@ const foundCount = words.filter(w => w.isSynonym && w.tapped).length;
           <Text style={styles.statLabel}>Time</Text>
           <Text style={[styles.statValue, { color: timerColor }]}>{timeLeft}</Text>
           <TouchableOpacity
-            onPress={handleHint}
+            onPress={hints > 0 ? handleHint : handleWatchAd}
             onLongPress={onResetHints}
-            disabled={done}
-            style={[styles.hintBtn, (hints <= 0 || done) && styles.hintBtnDisabled]}
+            disabled={done || adLoading}
+            style={[styles.hintBtn, (done || adLoading) && styles.hintBtnDisabled, hints <= 0 && !done && !adLoading && styles.hintBtnAd]}
             hitSlop={8}
           >
-            <Text style={styles.hintBtnText}>Hint ({hints})</Text>
+            <Text style={styles.hintBtnText}>
+              {adLoading ? 'Loading...' : hints > 0 ? `Hint (${hints})` : 'Watch Ad (+3)'}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -396,6 +408,9 @@ const styles = StyleSheet.create({
   },
   hintBtnDisabled: {
     backgroundColor: '#4b4b70',
+  },
+  hintBtnAd: {
+    backgroundColor: '#6366f1',
   },
   hintBtnText: {
     color: '#0f0f2e',
