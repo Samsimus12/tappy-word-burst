@@ -8,9 +8,9 @@ A mobile word-synonym puzzle game for iOS and Android built with **Expo (React N
 cd ~/Documents/repos/tappy-word
 npx expo start --clear
 ```
-- Test on device via **Expo Go** app (App Store / Google Play)
-- Same network required, OR use `npx expo start --tunnel` to demo anywhere
-- Scan the QR code in Expo Go to load the app
+- **Expo Go no longer works** — `react-native-google-mobile-ads` is a native module requiring a custom dev client
+- Use `npx expo run:ios` for local device/simulator testing
+- Or `eas build --platform ios --profile development` for a device build via EAS
 
 ## GitHub
 https://github.com/Samsimus12/tappy-word
@@ -19,17 +19,18 @@ https://github.com/Samsimus12/tappy-word
 - **Expo SDK 54** with New Architecture enabled (`newArchEnabled: true`)
 - **React Native** built-in `Animated` API (NOT Reanimated — causes "Exception in HostFunction" crashes with this Expo config)
 - **expo-av** for all audio (sound effects + background music)
+- **react-native-google-mobile-ads** for AdMob (rewarded + interstitial ads)
 - **Datamuse API** (`api.datamuse.com`) for synonym fetching — 6s timeout with AbortController
 - **AsyncStorage** for hints, settings, and achievement persistence
 - No navigation library — simple screen state machine in `App.js`
 
 ## File structure
 ```
-App.js                          # Screen state machine (home → game → round-complete → results → achievements)
+App.js                          # Screen state machine + all ad/hint/round state
 screens/
   HomeScreen.js                 # Difficulty picker, mode selector card, settings modal, achievements link
-  GameScreen.js                 # Main game: floating/falling words, timer, round score, sound triggers
-  RoundCompleteScreen.js        # Between rounds: round score + total + found synonyms + continue
+  GameScreen.js                 # Main game: floating/falling words, timer, ads, second chance modal
+  RoundCompleteScreen.js        # Between rounds: scores, synonyms found, Watch Ad for hints
   ResultsScreen.js              # End screen: total score, missed synonyms, play again / back to home
   AchievementsScreen.js         # Achievement grid + theme selector
 components/
@@ -48,10 +49,10 @@ utils/
   settingsStorage.js            # AsyncStorage wrapper for { sfxEnabled, musicEnabled }
   achievementStorage.js         # AsyncStorage wrapper for { unlockedIds, selectedTheme, modesPlayed }
   audio.js                      # expo-av audio manager: initAudio(), playSound(name), startMusic(), stopMusic()
+  admob.js                      # AdMob wrapper: showRewardedAd(), preloadInterstitial(), showInterstitial()
 assets/
   sounds/                       # WAV sound effects (Success, Fail, Hint, Countdown, Go)
-  music/                        # 4 WAV tracks: Menu.wav (home loop), Pocket Parade.wav, Tile Tap Loop.wav,
-                                #   Taploop Arcade.wav, Token Pop.wav (game tracks, randomly selected)
+  music/                        # 4 WAV tracks: Menu.wav (home loop) + 4 game tracks (randomly selected)
 ```
 
 ## Game flow
@@ -76,61 +77,73 @@ assets/
 | Wrong penalty | -2 | -5 | -8 |
 | Synonym count | shown | shown | hidden |
 
-Difficulty applies to **all three modes** — the HomeScreen mode selector color (border, arrows, label, dots, Play button) reflects the active difficulty color to make this clear. Hard mode shows "X found" instead of "X / Y found" so players don't know how many synonyms remain.
+Hard mode shows "X found" instead of "X / Y found". HomeScreen mode selector card border, arrows, label, dots, and Play button all use `diff.color` to reflect active difficulty.
 
 ## Scoring
 - Points per correct tap scale by difficulty (+5/+10/+15), stored in `difficulty.js` as `correctPoints`
 - Wrong taps penalize -2/-5/-8 (minimum 0 per round)
 - **In-game header shows round score only** (resets each round)
 - Total accumulated score shown on RoundCompleteScreen and ResultsScreen
-- Score popups (green/red) float up from the bottom on each tap
 
-## HomeScreen layout
-- Top bar: 🏆 (AchievementsScreen) | ⚙️ (settings modal)
-- Difficulty row: Easy / Medium / Hard pill buttons (color-coded: green/amber/red)
-- Mode selector card: ‹ [icon + name + description] › with 3 dots indicator below
-  - Modes: Standard (🎯), Survival (⚡), Falling Words (🌊)
-  - Card border, arrows, label, dots, and Play button all use `diff.color` so difficulty changes are visible across all modes
-- Single **Play** button launches `onPlay(difficulty, mode)`
-- Animated floating background words (40 words drifting with recursive Animated.timing)
+## AdMob integration (fully implemented)
+AdMob App ID: `ca-app-pub-7289760521218684~1657536521`
+
+Three ad placements, all managed via `utils/admob.js`:
+
+**1. Rewarded — Hint reward** (GameScreen + RoundCompleteScreen)
+- Ad unit: `ca-app-pub-7289760521218684/5772041359`
+- In-game: hint button shows "Watch Ad (+3)" (purple) when hints = 0
+- Round complete screen: "Watch Ad · +3 Hints" amber outline button always visible
+- Grants 3 hints via `onEarnHints(3)` on success
+
+**2. Rewarded — Second Chance** (GameScreen)
+- Reuses same rewarded ad unit as hints
+- When timer hits 0: if second chance not yet used this game, pause and show modal instead of ending
+- Player can watch ad to continue with +15 seconds, or tap "No thanks" to end normally
+- One per game session — `secondChanceUsedRef` in `App.js` resets on Back/Play Again
+
+**3. Interstitial — Between rounds** (App.js `handleContinue`)
+- Ad unit: `ca-app-pub-7289760521218684/6650234092`
+- Preloaded on app startup and immediately after each show
+- Shows randomly every 3–6 rounds (`nextAdRoundRef` tracks threshold)
+- Skipped if player watched a rewarded ad that round (`watchedRewardedAdRef`)
+- Both refs reset on Back/Play Again for a clean new session
+
+**Dev mode**: all ads use `TestIds.REWARDED` / `TestIds.INTERSTITIAL` automatically via `__DEV__`
 
 ## Hints
 - Players start with 10 hints, persisted via AsyncStorage
-- Tapping highlights a random unfound synonym for 2 seconds; long-press resets to 10 (dev tool)
-- **Stub for AdMob rewarded ads** — future: "Watch an ad to earn hints"
+- Tapping highlights a random unfound synonym for 2 seconds
+- Long-press hint button resets to 10 (dev tool only)
+- Earned via rewarded ads (+3 per ad) from GameScreen or RoundCompleteScreen
 
 ## Audio
-`initAudio()` called on app startup via `utils/audio.js`. Uses `Promise.allSettled` so one bad file doesn't kill all audio. SFX uses `setPositionAsync(0)` + `playAsync()` (not `replayAsync()`) for reliability.
-
-Game music randomly picks from 4 tracks and auto-advances when a track ends. `gameMusicActive` flag prevents restarts between rounds — `startMusic()` is a no-op if already playing.
+`initAudio()` called on app startup. Uses `Promise.allSettled` so one bad file doesn't kill all audio. SFX uses `setPositionAsync(0)` + `playAsync()` (not `replayAsync()`) for reliability. Game music randomly picks from 4 tracks; `gameMusicActive` flag prevents restarts between rounds.
 
 ## Key technical notes
 - **Animated API**: Use React Native's built-in `Animated`, NOT Reanimated (crashes with this Expo config)
 - **Recursive animation**: FloatingBackground uses recursive `Animated.timing` callbacks, NOT `Animated.loop` — loop caused visible position snaps
-- **Screen state bug (fixed)**: `const [screen, setScreen]` MUST be declared before any `useEffect` that references it — Babel hoists `const` as `var undefined` otherwise
-- **FallingWord recycling**: Handled internally by the component via `tappedRef` to sync animation callbacks with React state
+- **Screen state bug (fixed)**: `const [screen, setScreen]` MUST be declared before any `useEffect` that references it
+- **FallingWord recycling**: Handled internally via `tappedRef` to sync animation callbacks with React state
 - **fallbackSynonyms.js** only covers the original ~58 BASE_WORDS — the 98 newer BASE_WORDS rely on Datamuse
+- **ScrollView centering**: RoundCompleteScreen uses `flexGrow: 1` on `contentContainerStyle` so `justifyContent: 'center'` actually works
 
 ## Pending: App Store submission
-Sam has an Apple Developer account (pending ID verification). Steps when ready:
-1. Set bundle ID in `app.json` — use `com.sammorrison.tappyword`
-2. Replace default Expo app icon and splash screen with real assets
-3. Prepare App Store screenshots (6.7" and 5.5" iPhone minimum)
-4. `npm install -g eas-cli && eas login && eas build:configure`
-5. `eas build --platform ios` — handles signing/provisioning automatically
-6. `eas submit --platform ios` or upload via Transporter
+Sam's Apple Developer account is approved. Bundle ID (`com.sammorrison.tappyword`) and EAS project ID (`8449672c-5804-457f-8203-702ba1dd8c05`) are already set in `app.json`.
 
-## Pending: AdMob integration
-Hints are already stubbed for rewarded ads. When ready:
-1. Create AdMob account at admob.google.com, set up payments profile (pays out monthly at $100 threshold)
-2. Register the app in AdMob, generate Ad Unit IDs
-3. Install `react-native-google-mobile-ads` (has Expo config plugin support)
-4. Add AdMob app ID to `app.json`
-5. Wire rewarded ad into hint button — show ad → grant hints on completion
-6. Optionally add interstitial ads between rounds (every 2–3 rounds)
+**Blocked on**: app icon and splash screen assets (Sam is creating these)
+- Icon: 1024×1024px PNG, no transparency, no rounded corners
+- Splash: any size PNG, centered on `#0f0f2e` background, keep focal point in centre 500×500px safe zone
+- Drop into `assets/` replacing `icon.png` and `splash-icon.png`
+
+**Remaining steps after assets are ready:**
+1. `eas build --platform ios`
+2. `eas submit --platform ios` (or upload via Transporter)
+3. Prepare App Store screenshots: 6.7" (1290×2796px) required, 5.5" (1242×2208px) recommended
 
 ## Known issues / things to revisit
 - Datamuse occasionally returns 0 synonyms — fallback covers original BASE_WORDS only
 - No persistent high score yet (AsyncStorage addition would be straightforward)
 - No haptics yet (`expo-haptics` would pair well with tap sounds)
-- App icon and splash screen are still Expo defaults
+- App icon and splash screen are still Expo defaults (in progress)
+- Android AdMob app ID in `app.json` is a placeholder — needs real ID when Android build is set up
