@@ -12,6 +12,7 @@ import { loadSettings, saveSettings } from './utils/settingsStorage';
 import { loadAchievementData, saveAchievementData } from './utils/achievementStorage';
 import { initAudio, setSfxEnabled, setMusicEnabled, startMenuMusic, stopMenuMusic, startMusic, stopMusic } from './utils/audio';
 import { ACHIEVEMENTS, THEMES } from './constants/achievements';
+import { preloadInterstitial, showInterstitial } from './utils/admob';
 
 export default function App() {
   const [hints, setHints] = useState(0);
@@ -19,6 +20,9 @@ export default function App() {
   const [musicEnabled, setMusic] = useState(true);
   const audioReady = useRef(false);
   const [screen, setScreen] = useState('home');
+
+  const nextAdRoundRef = useRef(Math.floor(Math.random() * 4) + 3);
+  const watchedRewardedAdRef = useRef(false);
 
   const [achData, setAchData] = useState({ unlockedIds: [], selectedTheme: 'default', modesPlayed: [] });
   const achDataRef = useRef(achData);
@@ -30,6 +34,7 @@ export default function App() {
 
   useEffect(() => {
     buildWordPool().then(initQueue).catch(() => {});
+    preloadInterstitial();
     loadHints().then(setHints).catch(() => {});
     loadAchievementData().then(setAchData).catch(() => {});
     initAudio().then(() => {
@@ -86,6 +91,7 @@ export default function App() {
     const next = hints + amount;
     setHints(next);
     saveHints(next).catch(() => {});
+    watchedRewardedAdRef.current = true;
   }
 
   function handleResetHints() {
@@ -166,7 +172,12 @@ export default function App() {
     }
   }
 
-  function handleContinue() {
+  async function handleContinue() {
+    if (round >= nextAdRoundRef.current && !watchedRewardedAdRef.current) {
+      await showInterstitial();
+      nextAdRoundRef.current = round + Math.floor(Math.random() * 4) + 3;
+    }
+    watchedRewardedAdRef.current = false;
     setRound(prev => prev + 1);
     setScreen('game');
   }
@@ -177,6 +188,8 @@ export default function App() {
     setLastResult(null);
     setResult(null);
     setNewAchievements([]);
+    nextAdRoundRef.current = Math.floor(Math.random() * 4) + 3;
+    watchedRewardedAdRef.current = false;
     setScreen('home');
   }
 
@@ -186,6 +199,8 @@ export default function App() {
     setLastResult(null);
     setResult(null);
     setNewAchievements([]);
+    nextAdRoundRef.current = Math.floor(Math.random() * 4) + 3;
+    watchedRewardedAdRef.current = false;
     setScreen('game');
   }
 

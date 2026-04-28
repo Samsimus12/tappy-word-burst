@@ -1,12 +1,55 @@
-import { RewardedAd, RewardedAdEventType, AdEventType, TestIds } from 'react-native-google-mobile-ads';
+import { RewardedAd, RewardedAdEventType, InterstitialAd, AdEventType, TestIds } from 'react-native-google-mobile-ads';
 
-const AD_UNIT_ID = __DEV__
+const REWARDED_UNIT_ID = __DEV__
   ? TestIds.REWARDED
   : 'ca-app-pub-7289760521218684/5772041359';
 
+const INTERSTITIAL_UNIT_ID = __DEV__
+  ? TestIds.INTERSTITIAL
+  : 'ca-app-pub-7289760521218684/6650234092';
+
+let _interstitial = null;
+let _interstitialReady = false;
+
+export function preloadInterstitial() {
+  _interstitialReady = false;
+  _interstitial = InterstitialAd.createForAdRequest(INTERSTITIAL_UNIT_ID, {
+    keywords: ['game', 'puzzle', 'word'],
+  });
+  _interstitial.addAdEventListener(AdEventType.LOADED, () => {
+    _interstitialReady = true;
+  });
+  _interstitial.load();
+}
+
+export function showInterstitial() {
+  return new Promise((resolve) => {
+    if (!_interstitial || !_interstitialReady) {
+      resolve(false);
+      return;
+    }
+    const unsubs = [];
+    const cleanup = () => unsubs.forEach(fn => fn());
+
+    unsubs.push(_interstitial.addAdEventListener(AdEventType.CLOSED, () => {
+      cleanup();
+      _interstitialReady = false;
+      preloadInterstitial();
+      resolve(true);
+    }));
+    unsubs.push(_interstitial.addAdEventListener(AdEventType.ERROR, () => {
+      cleanup();
+      _interstitialReady = false;
+      resolve(false);
+    }));
+
+    _interstitial.show();
+  });
+}
+
 export function showRewardedAd() {
   return new Promise((resolve) => {
-    const rewarded = RewardedAd.createForAdRequest(AD_UNIT_ID, {
+    const rewarded = RewardedAd.createForAdRequest(REWARDED_UNIT_ID, {
       keywords: ['game', 'puzzle', 'word'],
     });
 

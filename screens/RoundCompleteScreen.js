@@ -112,6 +112,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   content: {
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 32,
