@@ -1,12 +1,17 @@
 import { RewardedAd, RewardedAdEventType, InterstitialAd, AdEventType, TestIds } from 'react-native-google-mobile-ads';
+import { Platform } from 'react-native';
 
 const REWARDED_UNIT_ID = __DEV__
   ? TestIds.REWARDED
-  : 'ca-app-pub-7289760521218684/5772041359';
+  : Platform.OS === 'android'
+    ? 'ca-app-pub-7289760521218684/4168464429'
+    : 'ca-app-pub-7289760521218684/5772041359';
 
 const INTERSTITIAL_UNIT_ID = __DEV__
   ? TestIds.INTERSTITIAL
-  : 'ca-app-pub-7289760521218684/6650234092';
+  : Platform.OS === 'android'
+    ? 'ca-app-pub-7289760521218684/4559346663'
+    : 'ca-app-pub-7289760521218684/6650234092';
 
 let _interstitial = null;
 let _interstitialReady = false;
