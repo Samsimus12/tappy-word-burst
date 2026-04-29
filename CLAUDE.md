@@ -51,8 +51,8 @@ utils/
   audio.js                      # expo-av audio manager: initAudio(), playSound(name), startMusic(), stopMusic()
   admob.js                      # AdMob wrapper: showRewardedAd(), preloadInterstitial(), showInterstitial()
 assets/
-  sounds/                       # WAV sound effects (Success, Fail, Hint, Countdown, Go)
-  music/                        # 4 WAV tracks: Menu.wav (home loop) + 4 game tracks (randomly selected)
+  sounds/                       # WAV sound effects (Success, Fail, Hint, Countdown, Go) — all capitalized
+  music/                        # Menu.wav (home loop) + 4 game tracks (randomly selected per round)
 ```
 
 ## Game flow
@@ -86,25 +86,28 @@ Hard mode shows "X found" instead of "X / Y found". HomeScreen mode selector car
 - Total accumulated score shown on RoundCompleteScreen and ResultsScreen
 
 ## AdMob integration (fully implemented)
-AdMob App ID: `ca-app-pub-7289760521218684~1657536521`
+All ad unit IDs are platform-specific via `Platform.OS` in `utils/admob.js`.
 
-Three ad placements, all managed via `utils/admob.js`:
+| | iOS | Android |
+|---|---|---|
+| App ID | `~1657536521` | `~9372375010` |
+| Rewarded | `/5772041359` | `/4168464429` |
+| Interstitial | `/6650234092` | `/4559346663` |
+
+Three ad placements:
 
 **1. Rewarded — Hint reward** (GameScreen + RoundCompleteScreen)
-- Ad unit: `ca-app-pub-7289760521218684/5772041359`
 - In-game: hint button shows "Watch Ad (+3)" (purple) when hints = 0
 - Round complete screen: "Watch Ad · +3 Hints" amber outline button always visible
 - Grants 3 hints via `onEarnHints(3)` on success
 
 **2. Rewarded — Second Chance** (GameScreen)
 - Reuses same rewarded ad unit as hints
-- When timer hits 0: if second chance not yet used this game, pause and show modal instead of ending
-- Player can watch ad to continue with +15 seconds, or tap "No thanks" to end normally
+- When timer hits 0: if second chance not yet used this game, show modal instead of ending
+- Player watches ad to continue with +15 seconds, or taps "No thanks" to end normally
 - One per game session — `secondChanceUsedRef` in `App.js` resets on Back/Play Again
 
 **3. Interstitial — Between rounds** (App.js `handleContinue`)
-- Ad unit: `ca-app-pub-7289760521218684/6650234092`
-- Preloaded on app startup and immediately after each show
 - Shows randomly every 3–6 rounds (`nextAdRoundRef` tracks threshold)
 - Skipped if player watched a rewarded ad that round (`watchedRewardedAdRef`)
 - Both refs reset on Back/Play Again for a clean new session
@@ -118,7 +121,7 @@ Three ad placements, all managed via `utils/admob.js`:
 - Earned via rewarded ads (+3 per ad) from GameScreen or RoundCompleteScreen
 
 ## Audio
-`initAudio()` called on app startup. Uses `Promise.allSettled` so one bad file doesn't kill all audio. SFX uses `setPositionAsync(0)` + `playAsync()` (not `replayAsync()`) for reliability. Game music randomly picks from 4 tracks; `gameMusicActive` flag prevents restarts between rounds.
+`initAudio()` called on app startup. Uses `Promise.allSettled` so one bad file doesn't kill all audio. SFX uses `setPositionAsync(0)` + `playAsync()` (not `replayAsync()`) for reliability. Game music randomly picks from 4 tracks; `gameMusicActive` flag prevents restarts between rounds. Simulator audio is unreliable — test music on a physical device.
 
 ## Key technical notes
 - **Animated API**: Use React Native's built-in `Animated`, NOT Reanimated (crashes with this Expo config)
@@ -127,23 +130,15 @@ Three ad placements, all managed via `utils/admob.js`:
 - **FallingWord recycling**: Handled internally via `tappedRef` to sync animation callbacks with React state
 - **fallbackSynonyms.js** only covers the original ~58 BASE_WORDS — the 98 newer BASE_WORDS rely on Datamuse
 - **ScrollView centering**: RoundCompleteScreen uses `flexGrow: 1` on `contentContainerStyle` so `justifyContent: 'center'` actually works
+- **Sound file casing**: All sound files in `assets/sounds/` use capitalized names (Success.wav, Fail.wav, Hint.wav) — must match exactly or EAS build fails on Linux
 
-## Pending: App Store submission
-Sam's Apple Developer account is approved. Bundle ID (`com.sammorrison.tappyword`) and EAS project ID (`8449672c-5804-457f-8203-702ba1dd8c05`) are already set in `app.json`.
+## App Store status
+- **iOS v1.0 submitted for App Review** (April 28, 2026) — awaiting Apple review (24–48hrs)
+- Bundle ID: `com.sammorrison.tappyword` | EAS project ID: `8449672c-5804-457f-8203-702ba1dd8c05`
+- Android AdMob IDs are set but no Android build has been done yet — full Google Play Store submission still needed (build, Play Console setup, listing, review)
 
-**Blocked on**: app icon and splash screen assets (Sam is creating these)
-- Icon: 1024×1024px PNG, no transparency, no rounded corners
-- Splash: any size PNG, centered on `#0f0f2e` background, keep focal point in centre 500×500px safe zone
-- Drop into `assets/` replacing `icon.png` and `splash-icon.png`
-
-**Remaining steps after assets are ready:**
-1. `eas build --platform ios`
-2. `eas submit --platform ios` (or upload via Transporter)
-3. Prepare App Store screenshots: 6.7" (1290×2796px) required, 5.5" (1242×2208px) recommended
-
-## Known issues / things to revisit
-- Datamuse occasionally returns 0 synonyms — fallback covers original BASE_WORDS only
+## Ideas / future features
+- **Rocket power-up**: destroys all remaining synonym bubbles on screen at once. Earned at a rate of ~1 per 1000 points scored (exact threshold TBD). Intended to be rare and satisfying — not purchasable, purely score-gated.
 - No persistent high score yet (AsyncStorage addition would be straightforward)
 - No haptics yet (`expo-haptics` would pair well with tap sounds)
-- App icon and splash screen are still Expo defaults (in progress)
-- Android AdMob app ID in `app.json` is a placeholder — needs real ID when Android build is set up
+- Datamuse occasionally returns 0 synonyms — fallback covers original BASE_WORDS only
