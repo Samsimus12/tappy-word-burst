@@ -21,7 +21,7 @@ Note: flag is `--device`, not `--simulator` (changed in newer Expo CLI). Xcode o
 Take screenshots with `Cmd+S` in Simulator, or `xcrun simctl io booted screenshot screenshot.png`.
 
 ## GitHub
-https://github.com/Samsimus12/synonym-bun (rename to `word-sweep` pending)
+https://github.com/Samsimus12/word-sweep
 
 ## Tech stack
 - **Expo SDK 54** with New Architecture enabled (`newArchEnabled: true`)
