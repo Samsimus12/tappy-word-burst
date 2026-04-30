@@ -1,11 +1,11 @@
-# Word Sweep (formerly Tappy Word / Synonym Bun) — Project Handoff
+# Tappy Word Burst (formerly Word Sweep / Tappy Word / Synonym Bun) — Project Handoff
 
 ## What this is
 A mobile word-synonym puzzle game for iOS and Android built with **Expo (React Native)**. The player is shown a target word and must tap all its synonyms floating around the screen before the timer runs out. Finding all synonyms advances to the next round; failing ends the game and shows a total score.
 
 ## Running the project
-```
-cd ~/Documents/repos/word-sweep
+```bash
+cd ~/Documents/repos/tappy-word-burst   # folder rename from word-sweep still needed if not done
 npx expo start --clear
 ```
 - **Expo Go no longer works** — `react-native-google-mobile-ads` is a native module requiring a custom dev client
@@ -14,14 +14,21 @@ npx expo start --clear
 
 **Simulator commands for App Store screenshots:**
 ```bash
-npx expo run:ios --device "iPhone 17 Pro Max"    # 6.9" — required
-npx expo run:ios --device "iPad Pro 13-inch (M5)" # 13" — required (supportsTablet: true)
+npx expo run:ios --device "iPhone 17 Pro Max"     # 6.9" — required
+npx expo run:ios --device "iPad Pro 13-inch (M5)"  # 13" — required (supportsTablet: true)
 ```
-Note: flag is `--device`, not `--simulator` (changed in newer Expo CLI). Xcode only has iPhone 17 models — no iPhone 16.
+Note: flag is `--device`, not `--simulator`. Xcode only has iPhone 17 models — no iPhone 16.
 Take screenshots with `Cmd+S` in Simulator, or `xcrun simctl io booted screenshot screenshot.png`.
 
 ## GitHub
-https://github.com/Samsimus12/word-sweep
+https://github.com/Samsimus12/tappy-word-burst
+
+## App identity
+- **Display name**: Tappy Word Burst
+- **Bundle ID**: `com.sammorrison.tappywordburst`
+- **Slug**: `tappy-word-burst`
+- **EAS project ID**: `5079b3ac-0adf-4824-868e-1f48247c525c`
+- **AdMob publisher**: `ca-app-pub-7289760521218684`
 
 ## Tech stack
 - **Expo SDK 54** with New Architecture enabled (`newArchEnabled: true`)
@@ -56,11 +63,11 @@ utils/
   hintStorage.js                # AsyncStorage wrapper for hint count (initializes to 10)
   settingsStorage.js            # AsyncStorage wrapper for { sfxEnabled, musicEnabled }
   achievementStorage.js         # AsyncStorage wrapper for { unlockedIds, selectedTheme, modesPlayed }
-  audio.js                      # expo-av audio manager: initAudio(), playSound(name), startMusic(), stopMusic()
+  audio.js                      # expo-av audio manager: initAudio(), playSound(name), startMusic(), stopMusic(), pauseMusic(), resumeMusic()
   admob.js                      # AdMob wrapper: showRewardedAd(), preloadInterstitial(), showInterstitial()
 assets/
-  icon.png                      # 1024×1024 app icon — currently still Synonym Bun branded, Word Sweep replacement ready to drop in; strip alpha flag if App Store rejects
-  splash-icon.png               # 688×1504 splash logo — resizeMode: contain, bg #0f0f2e (dark navy) — currently still Synonym Bun branded, Word Sweep replacement ready to drop in
+  icon.png                      # 1024×1024 RGB — Tappy Word Burst branded (slightly blurry, better version planned when ChatGPT credits refresh)
+  splash-icon.png               # 688×1504 RGB — Tappy Word Burst branded, bg #0062ff (blue)
   sounds/                       # WAV sound effects (Success, Fail, Hint, Countdown, Go) — all capitalized
   music/                        # Menu.wav (home loop) + 4 game tracks (randomly selected per round)
 ```
@@ -104,15 +111,15 @@ All ad unit IDs are platform-specific via `Platform.OS` in `utils/admob.js`.
 | Rewarded | `/5772041359` | `/4168464429` |
 | Interstitial | `/6650234092` | `/4559346663` |
 
-Three ad placements:
+**Music always pauses before any ad and resumes after** via `pauseMusic()`/`resumeMusic()` in `audio.js`. This applies to all three ad placements. `resumeMusic()` is a no-op if music is disabled.
 
 **1. Rewarded — Hint reward** (GameScreen + RoundCompleteScreen)
 - In-game: hint button shows "Watch Ad (+3)" (purple) when hints = 0
 - Round complete screen: "Watch Ad · +3 Hints" amber outline button always visible
+- Timer freezes during the ad — `adLoading` state is included in the timer `useEffect` deps
 - Grants 3 hints via `onEarnHints(3)` on success
 
 **2. Rewarded — Second Chance** (GameScreen)
-- Reuses same rewarded ad unit as hints
 - When timer hits 0: if second chance not yet used this game, show modal instead of ending
 - Player watches ad to continue with +15 seconds, or taps "No thanks" to end normally
 - One per game session — `secondChanceUsedRef` in `App.js` resets on Back/Play Again
@@ -120,11 +127,11 @@ Three ad placements:
 **3. Interstitial — Between rounds** (App.js `handleContinue`)
 - Shows randomly every 3–6 rounds (`nextAdRoundRef` tracks threshold)
 - Skipped if player watched a rewarded ad that round (`watchedRewardedAdRef`)
-- Both refs reset on Back/Play Again for a clean new session
+- Music stopped before interstitial; new GameScreen's `startMusic()` restarts it naturally
 
 **Dev mode**: all ads use `TestIds.REWARDED` / `TestIds.INTERSTITIAL` automatically via `__DEV__`
 
-**AdMob status**: App linked to AdMob (publisher `ca-app-pub-7289760521218684`), ad units active. Ads were not yet serving as of April 29 — likely needs 24h to activate. Test ads confirmed working in simulator. When ads fail to load in production, `showRewardedAd()` resolves `false` silently — button briefly shows "Loading..." then resets.
+**AdMob status**: App linked to AdMob, ad units active. Test ads confirmed working in simulator. When ads fail to load in production, `showRewardedAd()` resolves `false` silently.
 
 ## Hints
 - Players start with 10 hints, persisted via AsyncStorage
@@ -133,7 +140,7 @@ Three ad placements:
 - Earned via rewarded ads (+3 per ad) from GameScreen or RoundCompleteScreen
 
 ## Audio
-`initAudio()` called on app startup. Uses `Promise.allSettled` so one bad file doesn't kill all audio. SFX uses `setPositionAsync(0)` + `playAsync()` (not `replayAsync()`) for reliability. Game music randomly picks from 4 tracks; `gameMusicActive` flag prevents restarts between rounds. Simulator audio is unreliable — test music on a physical device.
+`initAudio()` called on app startup. Uses `Promise.allSettled` so one bad file doesn't kill all audio. SFX uses `setPositionAsync(0)` + `playAsync()` (not `replayAsync()`) for reliability. Game music randomly picks from 4 tracks; `gameMusicActive` flag prevents restarts between rounds. `pauseMusic()`/`resumeMusic()` pause and resume the current track without unloading it. Simulator audio is unreliable — test music on a physical device.
 
 ## Key technical notes
 - **Animated API**: Use React Native's built-in `Animated`, NOT Reanimated (crashes with this Expo config)
@@ -144,24 +151,17 @@ Three ad placements:
 - **ScrollView centering**: RoundCompleteScreen uses `flexGrow: 1` on `contentContainerStyle` so `justifyContent: 'center'` actually works
 - **Sound file casing**: All sound files in `assets/sounds/` use capitalized names (Success.wav, Fail.wav, Hint.wav) — must match exactly or EAS build fails on Linux
 
-## Rename status — "Word Sweep" (final name, rename complete)
+## App Store status
+- App Store Connect listing created as **"Tappy Word Burst"** (neither "Word Sweep" nor "Word Burst" were available)
+- iOS production build in progress via EAS (`eas build --platform ios --profile production`)
+- Submit with: `eas submit --platform ios --latest`
+- Screenshots already taken and saved
+- app-ads.txt: needs to be hosted at developer's website root — content: `google.com, pub-7289760521218684, DIRECT, f08c47fec0942fa0`; website URL must match support/marketing URL in App Store Connect
 
-**Done:**
-- HomeScreen title updated to "Word Sweep" (`screens/HomeScreen.js` line 109)
-- `app.json` updated: `name` → "Word Sweep", `slug` → "word-sweep", `bundleIdentifier` → `com.sammorrison.wordsweep`
-- GitHub repo renamed to `word-sweep`
-- Local directory renamed to `~/Documents/repos/word-sweep`
-- Git remote URL updated to `https://github.com/Samsimus12/word-sweep.git`
-
-**Still needed (do in order):**
-1. Review and drop in new Word Sweep branded `assets/icon.png` (1024×1024, no alpha)
-2. Review and drop in new Word Sweep branded `assets/splash-icon.png` (688×1504, portrait, bg #0f0f2e)
-3. Take App Store screenshots using simulator commands above
-4. Create new App Store Connect listing (name conflict: existing "Tappy Word" and "Tappy Word 2" apps on store)
-
-Current bundle ID: `com.sammorrison.wordsweep` | EAS project ID: `8449672c-5804-457f-8203-702ba1dd8c05`
-
-Android: AdMob IDs set, no build done yet — full Google Play submission still needed.
+## Still needed
+- Rename local folder: `mv ~/Documents/repos/word-sweep ~/Documents/repos/tappy-word-burst`
+- Replace `assets/icon.png` with a higher-resolution version (current one is slightly blurry — upscaled from low-res source; new ChatGPT-generated image needed)
+- Android: AdMob IDs set, no build done yet — full Google Play submission still needed
 
 ## Ideas / future features
 - **Rocket power-up**: destroys all remaining synonym bubbles on screen at once. Earned ~1 per 1000 points scored. Rare and satisfying — not purchasable, purely score-gated.
