@@ -106,7 +106,7 @@ export default function HomeScreen({ onPlay, sfxEnabled, musicEnabled, onToggleS
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.title}>Word{'\n'}Sweep</Text>
+        <Text style={styles.title}>Tappy Word{'\n'}Burst</Text>
         <Text style={styles.subtitle}>How many synonyms can you find?</Text>
 
         <Text style={styles.diffLabel}>Difficulty</Text>
