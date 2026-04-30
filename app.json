@@ -40,8 +40,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "8449672c-5804-457f-8203-702ba1dd8c05"
+        "projectId": "c7a9bfbe-77a8-4ea5-b47e-e47e6a3d9ce9"
       }
-    }
+    },
+    "owner": "samsimus12"
   }
 }
