@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, SafeAreaView, Animated, Modal } from 'react-native';
 import FloatingWord from '../components/FloatingWord';
 import FallingWord from '../components/FallingWord';
-import { playSound, startMusic, stopMusic } from '../utils/audio';
+import { playSound, startMusic, stopMusic, pauseMusic, resumeMusic } from '../utils/audio';
 import { fetchSynonyms } from '../utils/datamuse';
 import { nextWord } from '../utils/wordQueue';
 import { DISTRACTOR_WORDS } from '../constants/wordList';
@@ -92,7 +92,7 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
   }, []);
 
   useEffect(() => {
-    if (loading || done || countdown !== null || showQuitModal) return;
+    if (loading || done || countdown !== null || showQuitModal || adLoading) return;
     if (timeLeft === 0) {
       setDone(true);
       if (secondChanceAvailable) {
@@ -106,7 +106,7 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
     }
     const t = setTimeout(() => setTimeLeft(n => n - 1), 1000);
     return () => clearTimeout(t);
-  }, [timeLeft, loading, done, countdown, showQuitModal]);
+  }, [timeLeft, loading, done, countdown, showQuitModal, adLoading]);
 
   useEffect(() => {
     if (countdown === null) return;
@@ -238,13 +238,16 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
   async function handleWatchAd() {
     if (done || adLoading) return;
     setAdLoading(true);
+    await pauseMusic();
     const earned = await showRewardedAd();
+    await resumeMusic();
     setAdLoading(false);
     if (earned) onEarnHints(3);
   }
 
   async function handleSecondChance() {
     setSecondChanceAdLoading(true);
+    await pauseMusic();
     const earned = await showRewardedAd();
     setSecondChanceAdLoading(false);
     setShowSecondChance(false);
@@ -253,6 +256,7 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
       setDone(false);
       setTimeLeft(15);
       playSound('go');
+      await resumeMusic();
     } else {
       playSound('fail');
       stopMusic();

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
 import { ACHIEVEMENTS } from '../constants/achievements';
 import { showRewardedAd } from '../utils/admob';
+import { pauseMusic, resumeMusic } from '../utils/audio';
 
 export default function RoundCompleteScreen({ round, roundScore, totalScore, targetWord, foundSynonyms, onContinue, onBack, newAchievements = [], theme, hints = 0, onEarnHints }) {
   const [adLoading, setAdLoading] = useState(false);
@@ -9,7 +10,9 @@ export default function RoundCompleteScreen({ round, roundScore, totalScore, tar
   async function handleWatchAd() {
     if (adLoading) return;
     setAdLoading(true);
+    await pauseMusic();
     const earned = await showRewardedAd();
+    await resumeMusic();
     setAdLoading(false);
     if (earned) onEarnHints(3);
   }

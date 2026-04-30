@@ -175,6 +175,7 @@ export default function App() {
 
   async function handleContinue() {
     if (round >= nextAdRoundRef.current && !watchedRewardedAdRef.current) {
+      stopMusic();
       await showInterstitial();
       nextAdRoundRef.current = round + Math.floor(Math.random() * 4) + 3;
     }

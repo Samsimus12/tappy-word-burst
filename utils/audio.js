@@ -120,3 +120,13 @@ export async function stopMusic() {
     gameMusic = null;
   }
 }
+
+export async function pauseMusic() {
+  if (!gameMusic) return;
+  try { await gameMusic.pauseAsync(); } catch {}
+}
+
+export async function resumeMusic() {
+  if (!musicEnabled || !gameMusicActive || !gameMusic) return;
+  try { await gameMusic.playAsync(); } catch {}
+}
