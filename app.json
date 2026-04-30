@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Tappy Word Burst",
-    "slug": "word-sweep",
+    "slug": "tappy-word-burst",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.sammorrison.wordsweep",
+      "bundleIdentifier": "com.sammorrison.tappywordburst",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -40,7 +40,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "c7a9bfbe-77a8-4ea5-b47e-e47e6a3d9ce9"
+        "projectId": "5079b3ac-0adf-4824-868e-1f48247c525c"
       }
     },
     "owner": "samsimus12"
