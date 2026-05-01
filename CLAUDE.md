@@ -5,7 +5,7 @@ A mobile word-synonym puzzle game for iOS and Android built with **Expo (React N
 
 ## Running the project
 ```bash
-cd ~/Documents/repos/tappy-word-burst   # folder rename from word-sweep still needed if not done
+cd ~/Documents/repos/tappy-word-burst
 npx expo start --clear
 ```
 - **Expo Go no longer works** — `react-native-google-mobile-ads` is a native module requiring a custom dev client
@@ -25,9 +25,10 @@ https://github.com/Samsimus12/tappy-word-burst
 
 ## App identity
 - **Display name**: Tappy Word Burst
-- **Bundle ID**: `com.sammorrison.tappywordburst`
+- **Bundle ID**: `com.sammorrison.tappyword` (note: NOT tappywordburst — changed to match App Store Connect app)
 - **Slug**: `tappy-word-burst`
 - **EAS project ID**: `5079b3ac-0adf-4824-868e-1f48247c525c`
+- **App Store Connect app ID**: `6764457991` (pinned in `eas.json` as `ascAppId`)
 - **AdMob publisher**: `ca-app-pub-7289760521218684`
 
 ## Tech stack
@@ -152,14 +153,14 @@ All ad unit IDs are platform-specific via `Platform.OS` in `utils/admob.js`.
 - **Sound file casing**: All sound files in `assets/sounds/` use capitalized names (Success.wav, Fail.wav, Hint.wav) — must match exactly or EAS build fails on Linux
 
 ## App Store status
-- App Store Connect listing created as **"Tappy Word Burst"** (neither "Word Sweep" nor "Word Burst" were available)
-- iOS production build in progress via EAS (`eas build --platform ios --profile production`)
-- Submit with: `eas submit --platform ios --latest`
-- Screenshots already taken and saved
-- app-ads.txt: needs to be hosted at developer's website root — content: `google.com, pub-7289760521218684, DIRECT, f08c47fec0942fa0`; website URL must match support/marketing URL in App Store Connect
+- **v2.0.0 submitted for review** (as of 2026-04-30)
+- Bundle ID is `com.sammorrison.tappyword` (App Store Connect app ID `6764457991`)
+- Submit future builds with: `eas build --platform ios --profile production` then `eas submit --platform ios --latest`
+- Screenshots already taken and uploaded
+- **app-ads.txt** hosted at `https://samsimus12.github.io/app-ads.txt` via the `samsimus12.github.io` GitHub Pages repo
+- **TODO (next release)**: Update Support URL and Marketing URL in App Store Connect to `https://samsimus12.github.io` — these fields can only be changed when submitting a new app version
 
 ## Still needed
-- Rename local folder: `mv ~/Documents/repos/word-sweep ~/Documents/repos/tappy-word-burst`
 - Replace `assets/icon.png` with a higher-resolution version (current one is slightly blurry — upscaled from low-res source; new ChatGPT-generated image needed)
 - Android: AdMob IDs set, no build done yet — full Google Play submission still needed
 
