@@ -1,4 +1,4 @@
-import { RewardedAd, RewardedAdEventType, InterstitialAd, AdEventType, TestIds } from 'react-native-google-mobile-ads';
+import MobileAds, { RewardedAd, RewardedAdEventType, InterstitialAd, AdEventType, TestIds } from 'react-native-google-mobile-ads';
 import { Platform } from 'react-native';
 
 const REWARDED_UNIT_ID = __DEV__
@@ -12,6 +12,10 @@ const INTERSTITIAL_UNIT_ID = __DEV__
   : Platform.OS === 'android'
     ? 'ca-app-pub-7289760521218684/4559346663'
     : 'ca-app-pub-7289760521218684/6650234092';
+
+export async function initAdMob() {
+  await MobileAds().initialize();
+}
 
 let _interstitial = null;
 let _interstitialReady = false;

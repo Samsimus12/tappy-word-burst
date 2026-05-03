@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { requestTrackingPermissionsAsync } from 'expo-tracking-transparency';
 import LoadingScreen from './screens/LoadingScreen';
 import HomeScreen from './screens/HomeScreen';
 import GameScreen from './screens/GameScreen';
@@ -13,7 +15,7 @@ import { loadSettings, saveSettings } from './utils/settingsStorage';
 import { loadAchievementData, saveAchievementData } from './utils/achievementStorage';
 import { initAudio, setSfxEnabled, setMusicEnabled, startMenuMusic, stopMenuMusic, startMusic, stopMusic } from './utils/audio';
 import { ACHIEVEMENTS, THEMES } from './constants/achievements';
-import { preloadInterstitial, showInterstitial } from './utils/admob';
+import { initAdMob, preloadInterstitial, showInterstitial } from './utils/admob';
 
 export default function App() {
   const [hints, setHints] = useState(0);
@@ -36,8 +38,17 @@ export default function App() {
 
   useEffect(() => {
     const timer = setTimeout(() => setScreen('home'), 3000);
+
+    // ATT must resolve before AdMob initializes on iOS
+    (async () => {
+      if (Platform.OS === 'ios') {
+        await requestTrackingPermissionsAsync().catch(() => {});
+      }
+      await initAdMob().catch(() => {});
+      preloadInterstitial();
+    })();
+
     buildWordPool().then(initQueue).catch(() => {});
-    preloadInterstitial();
     loadHints().then(setHints).catch(() => {});
     loadAchievementData().then(setAchData).catch(() => {});
     initAudio().then(() => {

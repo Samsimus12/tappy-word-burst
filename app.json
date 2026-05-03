@@ -17,7 +17,8 @@
       "buildNumber": "1",
       "bundleIdentifier": "com.sammorrison.tappyword",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSUserTrackingUsageDescription": "This identifier is used to show you personalized ads and measure ad performance."
       }
     },
     "android": {
@@ -39,7 +40,8 @@
           "androidAppId": "ca-app-pub-7289760521218684~9372375010",
           "iosAppId": "ca-app-pub-7289760521218684~1657536521"
         }
-      ]
+      ],
+      "expo-tracking-transparency"
     ],
     "extra": {
       "eas": {
