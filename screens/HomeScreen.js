@@ -81,6 +81,37 @@ const MODES = [
   { key: 'falling',  label: 'Falling Words',  icon: '🌊', sub: 'Tap synonyms as they fall', color: '#22d3ee' },
 ];
 
+function OutlinedText({ style, outlineColor, outlineWidth = 3, children }) {
+  const offsets = [
+    [0, -outlineWidth], [0, outlineWidth],
+    [-outlineWidth, 0], [outlineWidth, 0],
+    [-outlineWidth, -outlineWidth], [outlineWidth, -outlineWidth],
+    [-outlineWidth, outlineWidth],  [outlineWidth, outlineWidth],
+  ];
+  return (
+    <View>
+      {offsets.map(([tx, ty], i) => (
+        <Text key={i} style={[style, { position: 'absolute', left: 0, right: 0, color: outlineColor, transform: [{ translateX: tx }, { translateY: ty }] }]}>
+          {children}
+        </Text>
+      ))}
+      <Text style={style}>{children}</Text>
+    </View>
+  );
+}
+
+function TitleStarburst() {
+  const rays = Array.from({ length: 12 }, (_, i) => i * 30);
+  return (
+    <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ width: 260, height: 170, borderRadius: 85, backgroundColor: '#1d4ed8', opacity: 0.22 }} />
+      {rays.map((deg, i) => (
+        <View key={i} style={{ position: 'absolute', width: 320, height: 4, backgroundColor: '#60a5fa', opacity: 0.13, borderRadius: 2, transform: [{ rotate: `${deg}deg` }] }} />
+      ))}
+    </View>
+  );
+}
+
 export default function HomeScreen({ onPlay, sfxEnabled, musicEnabled, onToggleSfx, onToggleMusic, onOpenAchievements, theme }) {
   const [selected, setSelected] = useState('medium');
   const [modeIndex, setModeIndex] = useState(0);
@@ -91,6 +122,16 @@ export default function HomeScreen({ onPlay, sfxEnabled, musicEnabled, onToggleS
   const bg = theme?.bg ?? '#0f0f2e';
   const card = theme?.card ?? '#1e1e4a';
   const accent = theme?.accent ?? '#6366f1';
+
+  const titleFade = useRef(new Animated.Value(0)).current;
+  const titleScale = useRef(new Animated.Value(0.88)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(titleFade, { toValue: 1, duration: 500, useNativeDriver: true }),
+      Animated.spring(titleScale, { toValue: 1, friction: 6, tension: 80, useNativeDriver: true }),
+    ]).start();
+  }, []);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: bg }]}>
@@ -106,7 +147,14 @@ export default function HomeScreen({ onPlay, sfxEnabled, musicEnabled, onToggleS
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.title}>Tappy Word{'\n'}Burst</Text>
+        <Animated.View style={{ opacity: titleFade, transform: [{ scale: titleScale }], alignItems: 'center', marginBottom: 12 }}>
+          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }} pointerEvents="none">
+            <TitleStarburst />
+          </View>
+          <OutlinedText style={styles.titleTappy} outlineColor="#1a3a7a" outlineWidth={2}>TAPPY</OutlinedText>
+          <OutlinedText style={styles.titleWord} outlineColor="#b34400" outlineWidth={4}>WORD</OutlinedText>
+          <OutlinedText style={styles.titleBurstWord} outlineColor="#b34400" outlineWidth={4}>BURST</OutlinedText>
+        </Animated.View>
         <Text style={styles.subtitle}>How many synonyms can you find?</Text>
 
         <Text style={styles.diffLabel}>Difficulty</Text>
@@ -237,14 +285,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     paddingBottom: 16,
   },
-  title: {
-    fontSize: 52,
-    fontWeight: '800',
-    color: '#fff',
+  titleTappy: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#ffffff',
     textAlign: 'center',
-    letterSpacing: 1,
-    lineHeight: 58,
-    marginBottom: 12,
+    letterSpacing: 10,
+  },
+  titleWord: {
+    fontSize: 72,
+    fontWeight: '900',
+    color: '#FFD600',
+    textAlign: 'center',
+    letterSpacing: 4,
+    lineHeight: 76,
+  },
+  titleBurstWord: {
+    fontSize: 66,
+    fontWeight: '900',
+    color: '#FFD600',
+    textAlign: 'center',
+    letterSpacing: 6,
+    lineHeight: 72,
   },
   subtitle: {
     fontSize: 16,

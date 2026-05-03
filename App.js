@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
+import LoadingScreen from './screens/LoadingScreen';
 import HomeScreen from './screens/HomeScreen';
 import GameScreen from './screens/GameScreen';
 import RoundCompleteScreen from './screens/RoundCompleteScreen';
@@ -19,7 +20,7 @@ export default function App() {
   const [sfxEnabled, setSfx] = useState(true);
   const [musicEnabled, setMusic] = useState(true);
   const audioReady = useRef(false);
-  const [screen, setScreen] = useState('home');
+  const [screen, setScreen] = useState('loading');
 
   const nextAdRoundRef = useRef(Math.floor(Math.random() * 4) + 3);
   const watchedRewardedAdRef = useRef(false);
@@ -34,6 +35,7 @@ export default function App() {
   const theme = THEMES[achData.selectedTheme] ?? THEMES.default;
 
   useEffect(() => {
+    const timer = setTimeout(() => setScreen('home'), 3000);
     buildWordPool().then(initQueue).catch(() => {});
     preloadInterstitial();
     loadHints().then(setHints).catch(() => {});
@@ -48,6 +50,7 @@ export default function App() {
         if (s.musicEnabled) startMenuMusic();
       }).catch(() => {});
     }).catch(() => {});
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -211,6 +214,9 @@ export default function App() {
   return (
     <>
       <StatusBar style="light" />
+      {screen === 'loading' && (
+        <LoadingScreen theme={theme} />
+      )}
       {screen === 'home' && (
         <HomeScreen
           onPlay={handlePlay}
