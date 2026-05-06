@@ -3,8 +3,10 @@ import { Text, StyleSheet, Animated, Easing } from 'react-native';
 
 const RAY_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315];
 
-function FallingWord({ wordId, word, tapped, correct, highlighted, onTap, screenWidth, screenHeight, speedMultiplier = 1, bubbleColor = '#3b3b8f' }) {
-  const x = useRef(new Animated.Value(Math.random() * Math.max(0, screenWidth - 150))).current;
+function FallingWord({ wordId, word, tapped, correct, highlighted, screenWidth, screenHeight, speedMultiplier = 1, bubbleColor = '#3b3b8f', wordPositionsRef }) {
+  const initX = useRef(Math.random() * Math.max(0, screenWidth - 150)).current;
+
+  const x = useRef(new Animated.Value(initX)).current;
   const y = useRef(new Animated.Value(-60)).current;
   const scale = useRef(new Animated.Value(1)).current;
   const bubbleOpacity = useRef(new Animated.Value(1)).current;
@@ -15,7 +17,6 @@ function FallingWord({ wordId, word, tapped, correct, highlighted, onTap, screen
   const tappedRef = useRef(tapped);
   useEffect(() => { tappedRef.current = tapped; }, [tapped]);
 
-  // Mirror props into refs so the recursive fall closure always reads latest values.
   const screenWidthRef = useRef(screenWidth);
   const screenHeightRef = useRef(screenHeight);
   useEffect(() => { screenWidthRef.current = screenWidth; screenHeightRef.current = screenHeight; }, [screenWidth, screenHeight]);
@@ -29,6 +30,28 @@ function FallingWord({ wordId, word, tapped, correct, highlighted, onTap, screen
     outputRange: ['0deg', `${crumbleDir * 22}deg`],
   });
 
+  // Register position in parent's hit-test map and track via addListener.
+  useEffect(() => {
+    wordPositionsRef.current[wordId] = {
+      x: initX, y: -60,
+      width: bubbleSizeRef.current.width,
+      height: bubbleSizeRef.current.height,
+    };
+    const xId = x.addListener(({ value }) => {
+      const pos = wordPositionsRef.current[wordId];
+      if (pos) pos.x = value;
+    });
+    const yId = y.addListener(({ value }) => {
+      const pos = wordPositionsRef.current[wordId];
+      if (pos) pos.y = value;
+    });
+    return () => {
+      x.removeListener(xId);
+      y.removeListener(yId);
+      delete wordPositionsRef.current[wordId];
+    };
+  }, []);
+
   // Falling animation with recycling
   useEffect(() => {
     let active = true;
@@ -36,19 +59,19 @@ function FallingWord({ wordId, word, tapped, correct, highlighted, onTap, screen
 
     const fall = () => {
       if (!active || tappedRef.current) return;
-      x.setValue(Math.random() * Math.max(0, screenWidthRef.current - bubbleSizeRef.current.width));
+      const newX = Math.random() * Math.max(0, screenWidthRef.current - bubbleSizeRef.current.width);
+      x.setValue(newX);
       y.setValue(-60);
 
       const anim = Animated.timing(y, {
         toValue: screenHeightRef.current + 60,
         duration: (2800 + Math.random() * 2200) / speedMultiplier,
         easing: Easing.linear,
-        useNativeDriver: false,
+        useNativeDriver: true,
       });
       fallAnimRef.current = anim;
       anim.start(({ finished }) => {
         if (!finished || !active || tappedRef.current) return;
-        // Brief pause before re-entering
         const reentryDelay = 300 + Math.random() * 700;
         setTimeout(() => fall(), reentryDelay);
       });
@@ -117,13 +140,16 @@ function FallingWord({ wordId, word, tapped, correct, highlighted, onTap, screen
 
   return (
     <Animated.View
+      pointerEvents="none"
       style={{ position: 'absolute', transform: [{ translateX: x }, { translateY: y }] }}
-      hitSlop={10}
-      onStartShouldSetResponder={() => !tapped}
-      onResponderRelease={() => { if (!tapped) onTap(wordId); }}
     >
       <Animated.View
-        onLayout={e => { bubbleSizeRef.current = e.nativeEvent.layout; }}
+        onLayout={e => {
+          const { width, height } = e.nativeEvent.layout;
+          bubbleSizeRef.current = { width, height };
+          const pos = wordPositionsRef.current[wordId];
+          if (pos) { pos.width = width; pos.height = height; }
+        }}
         style={[
           styles.bubble,
           { backgroundColor: bgColor, opacity: bubbleOpacity },

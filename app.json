@@ -2,7 +2,7 @@
   "expo": {
     "name": "Tappy Word Burst",
     "slug": "tappy-word-burst",
-    "version": "2.0.1",
+    "version": "2.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",

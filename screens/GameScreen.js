@@ -81,6 +81,7 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
   const wordsRef = useRef([]);
   const roundScoreRef = useRef(0);
   const targetWordRef = useRef('');
+  const wordPositionsRef = useRef({});
   const wrongPenaltyRef = useRef(config.wrongPenalty);
   const correctPointsRef = useRef(config.correctPoints ?? 10);
   const countdownScale = useRef(new Animated.Value(1)).current;
@@ -222,6 +223,28 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
     playSound(target.isSynonym ? 'correct' : 'wrong');
   }, [isSurvival]);
 
+  // Single parent-level touch handler: fires on touch-DOWN against the position
+  // map maintained by each bubble via addListener on their native-driver animations.
+  const handleAreaTap = useCallback((e) => {
+    const { locationX, locationY } = e.nativeEvent;
+    const positions = wordPositionsRef.current;
+    const untapped = wordsRef.current.filter(w => !w.tapped);
+    const SLOP = 16;
+    // Iterate in render order; last match wins (topmost bubble visually)
+    let matchId = null;
+    for (const w of untapped) {
+      const pos = positions[w.id];
+      if (!pos) continue;
+      if (
+        locationX >= pos.x - SLOP && locationX <= pos.x + pos.width + SLOP &&
+        locationY >= pos.y - SLOP && locationY <= pos.y + pos.height + SLOP
+      ) {
+        matchId = w.id;
+      }
+    }
+    if (matchId !== null) handleTap(matchId);
+  }, [handleTap]);
+
   const removePopup = useCallback((id) => {
     setScorePopups(prev => prev.filter(p => p.id !== id));
   }, []);
@@ -337,7 +360,9 @@ const foundCount = words.filter(w => w.isSynonym && w.tapped).length;
 
       <View
         style={styles.wordArea}
-        pointerEvents={countdown !== null ? 'none' : 'box-none'}
+        pointerEvents={countdown !== null ? 'none' : 'box-only'}
+        onStartShouldSetResponder={() => countdown === null}
+        onResponderGrant={handleAreaTap}
         onLayout={e => setWordAreaBounds({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
       >
         {words.map(w => isFalling ? (
@@ -348,11 +373,11 @@ const foundCount = words.filter(w => w.isSynonym && w.tapped).length;
             tapped={w.tapped}
             correct={w.correct}
             highlighted={w.id === highlightedId}
-            onTap={handleTap}
             screenWidth={wordAreaBounds.width}
             screenHeight={wordAreaBounds.height}
             speedMultiplier={config.speedMultiplier}
             bubbleColor={themeBubble}
+            wordPositionsRef={wordPositionsRef}
           />
         ) : (
           <FloatingWord
@@ -362,10 +387,10 @@ const foundCount = words.filter(w => w.isSynonym && w.tapped).length;
             tapped={w.tapped}
             correct={w.correct}
             highlighted={w.id === highlightedId}
-            onTap={handleTap}
             bounds={wordAreaBounds}
             speedMultiplier={config.speedMultiplier}
             bubbleColor={themeBubble}
+            wordPositionsRef={wordPositionsRef}
           />
         ))}
         {countdown !== null && (

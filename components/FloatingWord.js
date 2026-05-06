@@ -3,14 +3,11 @@ import { Text, StyleSheet, Animated, Easing } from 'react-native';
 
 const RAY_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315];
 
-function FloatingWord({ wordId, word, tapped, correct, highlighted, onTap, bounds, speedMultiplier = 1, bubbleColor = '#3b3b8f' }) {
+function FloatingWord({ wordId, word, tapped, correct, highlighted, bounds, speedMultiplier = 1, bubbleColor = '#3b3b8f', wordPositionsRef }) {
   const dur = useRef((3500 + Math.random() * 4000) / speedMultiplier).current;
   const delayMs = useRef(Math.random() * 1500).current;
 
-  // Updated by onLayout to actual rendered size; conservative initial estimate keeps first
-  // target in-bounds before layout fires.
   const bubbleSizeRef = useRef({ width: 150, height: 55 });
-  // Mirror bounds prop so the recursive animation closure always reads the latest value.
   const boundsRef = useRef(bounds);
   useEffect(() => { boundsRef.current = bounds; }, [bounds]);
 
@@ -36,6 +33,31 @@ function FloatingWord({ wordId, word, tapped, correct, highlighted, onTap, bound
 
   const activeAnimRef = useRef(null);
 
+  // Register position in parent's hit-test map and track via addListener.
+  // useNativeDriver: true means the native thread drives the animation, so
+  // addListener delivers values asynchronously from the native side. The
+  // ~1-frame lag is smaller than our hit-slop, so hit testing stays accurate.
+  useEffect(() => {
+    wordPositionsRef.current[wordId] = {
+      x: initX, y: initY,
+      width: bubbleSizeRef.current.width,
+      height: bubbleSizeRef.current.height,
+    };
+    const xId = x.addListener(({ value }) => {
+      const pos = wordPositionsRef.current[wordId];
+      if (pos) pos.x = value;
+    });
+    const yId = y.addListener(({ value }) => {
+      const pos = wordPositionsRef.current[wordId];
+      if (pos) pos.y = value;
+    });
+    return () => {
+      x.removeListener(xId);
+      y.removeListener(yId);
+      delete wordPositionsRef.current[wordId];
+    };
+  }, []);
+
   useEffect(() => {
     const easing = Easing.inOut(Easing.quad);
     let active = true;
@@ -47,10 +69,8 @@ function FloatingWord({ wordId, word, tapped, correct, highlighted, onTap, bound
       const targetX = Math.random() * Math.max(0, b.width - s.width);
       const targetY = Math.random() * Math.max(0, b.height - s.height);
       const anim = Animated.parallel([
-        // useNativeDriver: false keeps the view's layout position in sync with the visual,
-        // so Android touch targets follow the bubbles correctly.
-        Animated.timing(x, { toValue: targetX, duration: dur, easing, useNativeDriver: false }),
-        Animated.timing(y, { toValue: targetY, duration: dur * 1.4, easing, useNativeDriver: false }),
+        Animated.timing(x, { toValue: targetX, duration: dur, easing, useNativeDriver: true }),
+        Animated.timing(y, { toValue: targetY, duration: dur * 1.4, easing, useNativeDriver: true }),
       ]);
       activeAnimRef.current = anim;
       anim.start(({ finished }) => {
@@ -123,13 +143,16 @@ function FloatingWord({ wordId, word, tapped, correct, highlighted, onTap, bound
 
   return (
     <Animated.View
+      pointerEvents="none"
       style={{ position: 'absolute', transform: [{ translateX: x }, { translateY: y }] }}
-      hitSlop={10}
-      onStartShouldSetResponder={() => !tapped}
-      onResponderRelease={() => { if (!tapped) onTap(wordId); }}
     >
       <Animated.View
-        onLayout={e => { bubbleSizeRef.current = e.nativeEvent.layout; }}
+        onLayout={e => {
+          const { width, height } = e.nativeEvent.layout;
+          bubbleSizeRef.current = { width, height };
+          const pos = wordPositionsRef.current[wordId];
+          if (pos) { pos.width = width; pos.height = height; }
+        }}
         style={[
           styles.bubble,
           { backgroundColor: bgColor, opacity: bubbleOpacity },
