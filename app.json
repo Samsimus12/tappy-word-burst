@@ -2,7 +2,7 @@
   "expo": {
     "name": "Tappy Word Burst",
     "slug": "tappy-word-burst",
-    "version": "2.0.2",
+    "version": "2.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "buildNumber": "2",
+      "buildNumber": "3",
       "bundleIdentifier": "com.sammorrison.tappyword",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
