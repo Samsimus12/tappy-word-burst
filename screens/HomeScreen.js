@@ -1,7 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Dimensions, Animated, Easing, Modal } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ANDROID_TOP } from '../utils/androidSafeTop';
 import { DIFFICULTY } from '../constants/difficulty';
+
+const BANNER_EXPIRY = new Date('2026-07-01');
+const BANNER_KEY = 'newModesBannerDismissed';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
@@ -118,6 +122,7 @@ export default function HomeScreen({ onPlay, sfxEnabled, musicEnabled, onToggleS
   const [selected, setSelected] = useState('medium');
   const [modeIndex, setModeIndex] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
+  const [showBanner, setShowBanner] = useState(false);
   const diff = DIFFICULTY[selected];
   const currentMode = MODES[modeIndex];
   const modeColor = diff.color;
@@ -134,6 +139,18 @@ export default function HomeScreen({ onPlay, sfxEnabled, musicEnabled, onToggleS
       Animated.spring(titleScale, { toValue: 1, friction: 6, tension: 80, useNativeDriver: true }),
     ]).start();
   }, []);
+
+  useEffect(() => {
+    if (new Date() >= BANNER_EXPIRY) return;
+    AsyncStorage.getItem(BANNER_KEY).then(val => {
+      if (!val) setShowBanner(true);
+    });
+  }, []);
+
+  function handleDismissBanner() {
+    setShowBanner(false);
+    AsyncStorage.setItem(BANNER_KEY, '1');
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: bg }]}>
@@ -158,6 +175,20 @@ export default function HomeScreen({ onPlay, sfxEnabled, musicEnabled, onToggleS
           <OutlinedText style={styles.titleBurstWord} outlineColor="#b34400" outlineWidth={4}>BURST</OutlinedText>
         </Animated.View>
         <Text style={styles.subtitle}>How many synonyms can you find?</Text>
+
+        {showBanner && (
+          <View style={styles.banner}>
+            <View style={styles.bannerBody}>
+              <Text style={styles.bannerTitle}>✨ New Modes Added!</Text>
+              <Text style={styles.bannerText}>
+                Try <Text style={styles.bannerEmphasis}>Catchy Word 🪣</Text> and <Text style={styles.bannerEmphasis}>Word Slice ⚔️</Text> — two brand-new ways to play!
+              </Text>
+            </View>
+            <TouchableOpacity onPress={handleDismissBanner} hitSlop={10} activeOpacity={0.7} style={styles.bannerClose}>
+              <Text style={styles.bannerCloseText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         <Text style={styles.diffLabel}>Difficulty</Text>
         <View style={styles.diffRow}>
@@ -480,6 +511,48 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   settingsDoneText: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  banner: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1e1b4b',
+    borderWidth: 1.5,
+    borderColor: '#6366f1',
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingLeft: 14,
+    paddingRight: 10,
+    marginBottom: 20,
+    gap: 8,
+  },
+  bannerBody: {
+    flex: 1,
+    gap: 3,
+  },
+  bannerTitle: {
+    color: '#c7d2fe',
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  bannerText: {
+    color: '#a5b4fc',
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  bannerEmphasis: {
+    color: '#fff',
+    fontWeight: '700',
+  },
+  bannerClose: {
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+  },
+  bannerCloseText: {
+    color: '#6366f1',
     fontSize: 16,
     fontWeight: '700',
   },
