@@ -1,96 +1,95 @@
-# Tappy Word Burst (formerly Word Sweep / Tappy Word / Synonym Bun) — Project Handoff
+# Tappy Word Burst — Project Handoff
 
 ## What this is
-A mobile word-synonym puzzle game for iOS and Android built with **Expo (React Native)**. The player is shown a target word and must tap all its synonyms floating around the screen before the timer runs out. Finding all synonyms advances to the next round; failing ends the game and shows a total score.
+A mobile word-synonym puzzle game for iOS and Android built with **Expo (React Native)**. The player sees a target word and must find all its synonyms (floating, falling, or tossed) before the timer runs out. Four game modes, three difficulty levels, AdMob ads, achievements, and themes.
 
 ## Running the project
 ```bash
 cd ~/Documents/repos/tappy-word-burst
 npx expo start --clear
 ```
-- **Expo Go no longer works** — `react-native-google-mobile-ads` is a native module requiring a custom dev client
-- Use `npx expo run:ios` for local device/simulator testing
-- Use `npx expo run:android` for Android emulator (requires Android Studio AVD + Java 17 + ANDROID_HOME set)
+- **Expo Go no longer works** — `react-native-google-mobile-ads` requires a custom dev client
+- Use `npx expo run:ios` / `npx expo run:android` for device/simulator testing
 
 **Simulator commands for App Store screenshots:**
 ```bash
 npx expo run:ios --device "iPhone 17 Pro Max"     # 6.9" — required
-npx expo run:ios --device "iPad Pro 13-inch (M5)"  # 13" — required (supportsTablet: true)
+npx expo run:ios --device "iPad Pro 13-inch (M5)"  # 13" — required
 ```
-Note: flag is `--device`, not `--simulator`. Xcode only has iPhone 17 models — no iPhone 16.
-Take screenshots with `Cmd+S` in Simulator, or `xcrun simctl io booted screenshot screenshot.png`.
+Flag is `--device`, not `--simulator`. Take screenshots with `Cmd+S` in Simulator.
 
-**Android prerequisites** (one-time setup):
-- Java 17: `brew install --cask zulu@17` + `export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home`
-- `export ANDROID_HOME=$HOME/Library/Android/sdk` + add `$ANDROID_HOME/emulator` and `$ANDROID_HOME/platform-tools` to PATH
-- Create an AVD in Android Studio → Virtual Device Manager before running
+**Android prerequisites** (one-time): Java 17 via `brew install --cask zulu@17`, `ANDROID_HOME=$HOME/Library/Android/sdk`, AVD created in Android Studio.
 
 ## GitHub
 https://github.com/Samsimus12/tappy-word-burst
 
 ## App identity
-- **Display name**: Tappy Word Burst
-- **Bundle ID / Android package**: `com.sammorrison.tappyword` (note: NOT tappywordburst)
-- **Slug**: `tappy-word-burst`
+- **Bundle ID / package**: `com.sammorrison.tappyword` (NOT tappywordburst)
 - **EAS project ID**: `5079b3ac-0adf-4824-868e-1f48247c525c`
 - **App Store Connect app ID**: `6764457991` (pinned in `eas.json` as `ascAppId`)
-- **Android versionCode**: managed remotely by EAS (`appVersionSource: "remote"`, `autoIncrement: true`)
 - **AdMob publisher**: `ca-app-pub-7289760521218684`
+- **Current version**: 2.1.0, iOS build number 3 — EAS build in progress for App Store submission
 
 ## Tech stack
-- **Expo SDK 54** with New Architecture enabled (`newArchEnabled: true`)
-- **React Native** built-in `Animated` API (NOT Reanimated — causes "Exception in HostFunction" crashes with this Expo config)
-- **expo-av** for all audio (sound effects + background music)
-- **react-native-google-mobile-ads** for AdMob (rewarded + interstitial ads)
-- **Datamuse API** (`api.datamuse.com`) for synonym fetching — 6s timeout with AbortController
-- **AsyncStorage** for hints, settings, and achievement persistence
-- No navigation library — simple screen state machine in `App.js`
+- **Expo SDK 54**, New Architecture enabled (`newArchEnabled: true`)
+- **React Native `Animated` API only** — NOT Reanimated (causes "Exception in HostFunction" crashes)
+- **expo-av** for audio; **react-native-google-mobile-ads** for AdMob
+- **Datamuse API** for synonyms (6s timeout); **AsyncStorage** for persistence
+- No navigation library — screen state machine in `App.js`
 
 ## File structure
 ```
-App.js                          # Screen state machine + all ad/hint/round state
+App.js                          # Screen state machine + ad/hint/round state
 screens/
-  HomeScreen.js                 # Difficulty picker, mode selector card, settings modal, achievements link
-  GameScreen.js                 # Main game: floating/falling words, timer, ads, second chance modal
-  RoundCompleteScreen.js        # Between rounds: scores, synonyms found, Watch Ad for hints
-  ResultsScreen.js              # End screen: total score, missed synonyms, play again / back to home
+  HomeScreen.js                 # Difficulty picker, 4-mode selector, settings, achievements, new-modes banner
+  GameScreen.js                 # Game loop: all 4 modes, timer, ads, second chance, lives (slice)
+  RoundCompleteScreen.js        # Between rounds: scores, Watch Ad for hints
+  ResultsScreen.js              # End: total score, missed synonyms, play again
   AchievementsScreen.js         # Achievement grid + theme selector
-  LoadingScreen.js              # Animated splash shown while word pool builds on startup
+  LoadingScreen.js              # Animated splash during word pool build
 components/
-  FloatingWord.js               # Animated floating word bubble — accepts bubbleColor prop
-  FallingWord.js                # Falling word bubble for Falling Words mode — accepts bubbleColor prop
+  FloatingWord.js               # Standard/Survival mode — floating bubbles, JS-driver position
+  CatchyWord.js                 # Catchy Word mode — single falling bubble in a lane
+  CatchyGameArea.js             # Catchy Word orchestrator — 5 lanes, bucket, collision poll
+  SliceWord.js                  # Word Slice mode — parabolic arc bubble, JS-driver position
+  SliceGameArea.js              # Word Slice orchestrator — spawn/queue, swipe detection, lives display
+  FallingWord.js                # UNUSED — was Falling Words mode (replaced by Catchy Word)
 constants/
-  difficulty.js                 # Easy/Medium/Hard configs (duration, synonyms, distractors, speed, correctPoints, wrongPenalty)
-  wordList.js                   # BASE_WORDS (156 target words) and DISTRACTOR_WORDS (321 words)
-  fallbackSynonyms.js           # Offline fallback synonym map for original BASE_WORDS
-  achievements.js               # THEMES object (8 themes) + ACHIEVEMENTS array (10 achievements)
+  difficulty.js                 # Easy/Medium/Hard configs
+  wordList.js                   # BASE_WORDS (156) and DISTRACTOR_WORDS (321)
+  fallbackSynonyms.js           # Offline fallback synonyms for original ~58 BASE_WORDS
+  achievements.js               # THEMES (8) + ACHIEVEMENTS (10)
+  blocklist.js                  # Set of ~70 blocked words (profanity/slurs) — filtered from all gameplay
 utils/
-  datamuse.js                   # fetchSynonyms() and fetchRelatedWords() with frequency filter
-  wordPool.js                   # buildWordPool() — seeds ~1000-word pool from Datamuse on startup
-  wordQueue.js                  # Shuffle queue: initQueue(words) + nextWord() — no-repeat word selection
-  hintStorage.js                # AsyncStorage wrapper for hint count (initializes to 10)
-  settingsStorage.js            # AsyncStorage wrapper for { sfxEnabled, musicEnabled }
-  achievementStorage.js         # AsyncStorage wrapper for { unlockedIds, selectedTheme, modesPlayed }
-  audio.js                      # expo-av audio manager: initAudio(), playSound(name), startMusic(), stopMusic(), pauseMusic(), resumeMusic()
-  admob.js                      # AdMob wrapper: showRewardedAd(), preloadInterstitial(), showInterstitial()
-  androidSafeTop.js             # ANDROID_TOP constant: StatusBar.currentHeight on Android, 0 on iOS
-assets/
-  icon.png                      # 1024×1024 RGB — slightly blurry (upscaled); better version planned
-  splash-icon.png               # 688×1504 RGB — bg #0062ff (blue)
-  sounds/                       # WAV sound effects (Success, Fail, Hint, Countdown, Go) — all capitalized
-  music/                        # Menu.wav (home loop) + 4 game tracks (randomly selected per round)
+  datamuse.js                   # fetchSynonyms() / fetchRelatedWords() — filters blocklist + frequency
+  wordPool.js                   # buildWordPool() — seeds ~1000-word pool on startup
+  wordQueue.js                  # initQueue() + nextWord() — no-repeat shuffle queue
+  hintStorage.js / settingsStorage.js / achievementStorage.js  # AsyncStorage wrappers
+  audio.js                      # initAudio(), playSound(name), startMusic/stopMusic/pauseMusic/resumeMusic
+  admob.js                      # showRewardedAd(), preloadInterstitial(), showInterstitial()
+  androidSafeTop.js             # ANDROID_TOP = StatusBar.currentHeight on Android, 0 on iOS
 ```
 
-## Game flow
-1. **HomeScreen** — pick difficulty + mode, tap Play
-2. **GameScreen** — countdown 3-2-1-Go!, word bubbles, timer, round score popups
-3. **RoundCompleteScreen** — found all synonyms: round score + running total + synonyms found, Continue
-4. **GameScreen** (next round) — repeats until timer runs out
-5. **ResultsScreen** — time ran out: total score, last word stats, missed synonyms, Play Again / Back to Home
+## Game modes
+**Standard** — floating word bubbles; tap synonyms before timer runs out; round complete → next round.
 
-**Survival Mode** — continuous session: starts at 30s, +25s per word solved, -5s per wrong tap
+**Survival** — same as Standard but starts at 30s, +25s per word solved, -5s per wrong tap; no rounds.
 
-**Falling Words Mode** — synonyms fall top-to-bottom and recycle if missed; same timer/scoring as Standard
+**Catchy Word** (`CatchyGameArea`) — words fall in 5 fixed lanes; player drags a bucket at the bottom to catch synonyms. Bucket width = `Math.max(56, laneWidth - 8)` (exactly one lane). Collision polled every 50ms via `addListener`. Words only start falling when `paused` first becomes false (`startedRef` guard). Missed synonyms are re-queued. `wordArea` uses `pointerEvents="box-none"` so `CatchyGameArea` owns its own touches via `PanResponder`.
+
+**Word Slice** (`SliceGameArea`) — words tossed up from the bottom in a parabolic arc (rise 1400–1700ms, fall 1500–1800ms) and fall back off screen. Player swipes to slice; Liang-Barsky line-vs-AABB detects hits. **3 lives**: lose one for missing a synonym or slicing a distractor. Lives recover +1 every 20s (max 3). Lives=0 ends the game immediately (no second chance). Difficulty controls `maxConcurrent` words in the air (easy=2, medium=3, hard=5), not speed. `maxConcurrentRef` ramps +1 every 25s. `slicedLocalRef` Set prevents double-slicing before React state propagates. `useNativeDriver: false` required for JS-side hit testing.
+
+## Profanity filter
+`constants/blocklist.js` exports `BLOCKED_WORDS` (a `Set`). Applied in two places:
+1. `utils/datamuse.js` — strips blocked words from API results before returning
+2. `screens/GameScreen.js` — filters synonym list and distractor pool; retry loop checks *clean* synonym count so a word isn't selected if it only appears to have enough synonyms before filtering
+
+Matching is exact + case-insensitive — "class" and "assembly" are never affected.
+
+## New-modes banner
+`HomeScreen.js` shows a dismissible banner announcing Catchy Word and Word Slice between the subtitle and difficulty picker.
+- AsyncStorage key: `newModesBannerDismissed` — set on dismiss, checked on mount
+- `BANNER_EXPIRY = new Date('2026-07-01')` — if current date ≥ expiry, banner never loads regardless of storage
 
 ## Difficulty levels
 | | Easy | Medium | Hard |
@@ -98,96 +97,54 @@ assets/
 | Timer | 45s | 30s | 20s |
 | Synonyms shown | 4 | 6 | 8 |
 | Distractors | 8 | 12 | 16 |
-| Word speed | 0.6× | 1.0× | 1.6× |
+| Speed multiplier | 0.6× | 1.0× | 1.6× |
 | Correct points | +5 | +10 | +15 |
 | Wrong penalty | -2 | -5 | -8 |
-| Synonym count | shown | shown | hidden |
 
-Hard mode shows "X found" instead of "X / Y found". HomeScreen mode selector card border, arrows, label, dots, and Play button all use `diff.color` to reflect active difficulty.
+Hard mode hides total synonym count ("X found" not "X / Y found").
 
-## Scoring
-- Points per correct tap scale by difficulty (+5/+10/+15), stored in `difficulty.js` as `correctPoints`
-- Wrong taps penalize -2/-5/-8 (minimum 0 per round)
-- **In-game header shows round score only** (resets each round)
-- Total accumulated score shown on RoundCompleteScreen and ResultsScreen
+## AdMob
+All IDs platform-specific in `utils/admob.js`. Music always pauses/resumes around ads.
+- **Rewarded (hints)**: hint button shows "Watch Ad (+3)" at 0 hints; timer freezes during ad
+- **Rewarded (second chance)**: at timer=0, modal offers +15s; one per game; `secondChanceUsedRef` in `App.js`
+- **Interstitial**: randomly every 3–6 rounds in `App.js handleContinue`; skipped if rewarded ad watched that round
+- Dev mode uses `TestIds` automatically via `__DEV__`
 
-## AdMob integration (fully implemented)
-All ad unit IDs are platform-specific via `Platform.OS` in `utils/admob.js`.
+## Key technical gotchas
 
-| | iOS | Android |
-|---|---|---|
-| App ID | `~1657536521` | `~9372375010` |
-| Rewarded | `/5772041359` | `/4168464429` |
-| Interstitial | `/6650234092` | `/4559346663` |
-
-**Music always pauses before any ad and resumes after** via `pauseMusic()`/`resumeMusic()`. `resumeMusic()` is a no-op if music is disabled.
-
-**1. Rewarded — Hint reward** (GameScreen + RoundCompleteScreen): hint button shows "Watch Ad (+3)" when hints = 0; timer freezes during ad (`adLoading` in timer useEffect deps); grants 3 hints on success.
-
-**2. Rewarded — Second Chance** (GameScreen): when timer hits 0 and second chance not yet used, shows modal to watch ad for +15s. One per game — `secondChanceUsedRef` in `App.js` resets on Back/Play Again.
-
-**3. Interstitial — Between rounds** (App.js `handleContinue`): shows randomly every 3–6 rounds; skipped if rewarded ad watched that round (`watchedRewardedAdRef`).
-
-**Dev mode**: all ads use `TestIds.REWARDED` / `TestIds.INTERSTITIAL` automatically via `__DEV__`
-
-## Hints
-- Players start with 10 hints, persisted via AsyncStorage
-- Tapping highlights a random unfound synonym for 2 seconds
-- Long-press hint button resets to 10 (dev tool only)
-- Earned via rewarded ads (+3 per ad) from GameScreen or RoundCompleteScreen
-
-## Audio
-`initAudio()` called on app startup. Uses `Promise.allSettled` so one bad file doesn't kill all audio. SFX uses `setPositionAsync(0)` + `playAsync()` (not `replayAsync()`) for reliability. Game music randomly picks from 4 tracks; `gameMusicActive` flag prevents restarts between rounds. `pauseMusic()`/`resumeMusic()` pause and resume without unloading. Simulator audio is unreliable — test music on a physical device.
-
-## Key technical notes
-
-### Animation & touch (critical)
-- **Use `Animated`, NOT Reanimated** — Reanimated causes "Exception in HostFunction" crashes with this Expo config
-- **FloatingWord / FallingWord position animations use `useNativeDriver: false`** — this is intentional. Native driver moves the visual but NOT the touch hitbox on Android, making bubbles untappable. JS driver is slightly less smooth but correct. Tap-feedback animations (scale, opacity, shake) still use `useNativeDriver: true`.
-- **Touch handled via responder API on the outer `Animated.View`** (`onStartShouldSetResponder` + `onResponderRelease`) — NOT a nested `Pressable`. Pressable inside animated views compounds the hitbox problem on Android.
-- **FloatingWord uses recursive animation** (not `Animated.loop`) — each move picks a new target using `boundsRef.current` and `bubbleSizeRef.current` (actual layout size from `onLayout`) to keep bubbles in-bounds. `Animated.loop` with fixed targets caused position snaps and off-screen drift.
-- **GameScreen passes real `wordAreaBounds`** (measured via `onLayout` on the wordArea View) as `bounds` to FloatingWord and `screenWidth/Height` to FallingWord — NOT hardcoded from `Dimensions`. This accounts for safe area insets that make the rendered area smaller than `Dimensions.get('window')`.
+### Animation & touch
+- **`useNativeDriver: false` for position animations** in FloatingWord, SliceWord — native driver moves the visual but not the touch hitbox on Android. CatchyWord uses `useNativeDriver: true` for Y (visual-only fall; collision is polled externally, not touch-based).
+- **FloatingWord uses recursive animation** (not `Animated.loop`) — each step picks a new target from `boundsRef.current` to stay in-bounds.
+- **Touch in Standard/Survival via responder API** on the `Animated.View` (`onStartShouldSetResponder` + `onResponderRelease`) — NOT `Pressable`.
+- **Catchy/Slice modes**: `wordArea` is `pointerEvents="box-none"`; `onStartShouldSetResponder` returns false — each game area component owns its own `PanResponder`.
 
 ### Android edge-to-edge
-- `app.json` has `"edgeToEdgeEnabled": true` for Android, which draws the app behind the status bar
-- React Native's built-in `SafeAreaView` does NOT compensate for this on Android
-- All screens import `ANDROID_TOP` from `utils/androidSafeTop.js` and apply it as `paddingTop` on their container style
-- `ANDROID_TOP = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0`
+`"edgeToEdgeEnabled": true` in `app.json` draws behind the status bar. `SafeAreaView` does NOT fix this on Android. All screens apply `ANDROID_TOP` as `paddingTop`.
 
-### Other gotchas
-- **FallingWord recycling**: handled internally via `tappedRef` to sync animation callbacks with React state
-- **fallbackSynonyms.js** only covers the original ~58 BASE_WORDS — the 98 newer BASE_WORDS rely on Datamuse
-- **ScrollView centering**: RoundCompleteScreen uses `flexGrow: 1` on `contentContainerStyle` so `justifyContent: 'center'` works
-- **Sound file casing**: All files in `assets/sounds/` use capitalized names (Success.wav, Fail.wav, Hint.wav) — must match exactly or EAS build fails on Linux
+### Other
+- `fallbackSynonyms.js` only covers original ~58 BASE_WORDS; newer words rely entirely on Datamuse
+- Sound files in `assets/sounds/` use capitalized names (Success.wav, Fail.wav) — must match exactly or EAS Linux build fails
+- `PanResponder` closures in `CatchyGameArea` and `SliceGameArea` are created once on mount — use refs (`bucketWidthRef`, `screenWidthRef`, `pausedRef`) for values that change over time
 
 ## Deploying
-
-### iOS
 ```bash
+# iOS
 eas build --platform ios --profile production
 eas submit --platform ios --latest
-```
-- **v2.0.1 is live on App Store** (submitted 2026-04-30)
-- `eas.json` `submit.production.ios.ascAppId` = `"6764457991"`
 
-### Android
-```bash
+# Android
 eas build --platform android --profile production
 eas submit --platform android --latest
 ```
-- **Google Play internal testing track is active** — builds go live to testers within ~2 hours
-- Google service account key is already configured in EAS — `eas submit` works without extra setup
-- Testers must opt in once via the internal testing link in Play Console; after that, updates are automatic
-- **app-ads.txt** hosted at `https://samsimus12.github.io/app-ads.txt`
+- **v2.0.2 live on App Store**; v2.1.0 build in progress
+- Android versionCode managed by EAS (`appVersionSource: "remote"`, `autoIncrement: true`)
+- Google Play internal testing track is active; service account configured in EAS
+- **app-ads.txt** at `https://samsimus12.github.io/app-ads.txt`
+- App Store screenshots uploaded; search-result display has 24–72h propagation delay
 
-## Still needed
-- Replace `assets/icon.png` with a sharper version (current is slightly blurry — upscaled from low-res source)
-- Update Support URL and Marketing URL in App Store Connect to `https://samsimus12.github.io` — can only be changed when submitting a new version
-- Animation smoothness on Android: `useNativeDriver: false` for position animations may look choppy on low-end devices. If it's a problem on real hardware (not just emulator), consider a parent-level touch handler in GameScreen that tracks positions via `addListener` and restores native driver.
-
-## Ideas / future features
-- **Time bonus on round complete**: award bonus points based on time remaining when all synonyms are found. Rewards fast play and adds incentive to clear rounds quickly. Would be calculated in `App.js` `handleRoundComplete` where `timeLeft` is accessible.
-- **Rocket power-up**: destroys all remaining synonym bubbles at once. Earned ~1 per 1000 points scored — rare, satisfying, not purchasable.
-- No persistent high score yet (AsyncStorage addition would be straightforward)
-- No haptics yet (`expo-haptics` would pair well with tap sounds)
-- Datamuse occasionally returns 0 synonyms — fallback covers original BASE_WORDS only
+## Still needed / ideas
+- Sharper `assets/icon.png` (current is slightly blurry — upscaled from low-res)
+- Update Support/Marketing URLs in App Store Connect (only editable on new version submission)
+- No persistent high score yet (AsyncStorage addition is straightforward)
+- No haptics yet (`expo-haptics` pairs well with tap sounds)
+- Time bonus on round complete: award points based on time remaining (calculate in `App.js handleRoundComplete` where `timeLeft` is accessible)
