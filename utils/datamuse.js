@@ -1,3 +1,5 @@
+import { BLOCKED_WORDS } from '../constants/blocklist';
+
 const BASE_URL = 'https://api.datamuse.com';
 const TIMEOUT_MS = 6000;
 
@@ -14,6 +16,7 @@ async function datamuse(params) {
     return data
       .filter(item => {
         if (/[\s-]/.test(item.word)) return false;
+        if (BLOCKED_WORDS.has(item.word.toLowerCase())) return false;
         const freqTag = item.tags?.find(t => t.startsWith('f:'));
         if (!freqTag) return false;
         return parseFloat(freqTag.slice(2)) >= MIN_FREQUENCY;

@@ -77,9 +77,10 @@ function FloatingBackground() {
 }
 
 const MODES = [
-  { key: 'normal',   label: 'Standard',  icon: '🎯', sub: 'Score synonyms before time runs out', color: null },
-  { key: 'survival', label: 'Survival',   icon: '⚡', sub: 'Solve words to add time · wrong taps cost 5s', color: '#f43f5e' },
-  { key: 'falling',  label: 'Falling Words',  icon: '🌊', sub: 'Tap synonyms as they fall', color: '#22d3ee' },
+  { key: 'normal',   label: 'Standard',    icon: '🎯', sub: 'Score synonyms before time runs out', color: null },
+  { key: 'survival', label: 'Survival',    icon: '⚡', sub: 'Solve words to add time · wrong taps cost 5s', color: '#f43f5e' },
+  { key: 'catchy',   label: 'Catchy Word', icon: '🪣', sub: 'Slide the bucket · catch falling synonyms', color: '#22d3ee' },
+  { key: 'slice',    label: 'Word Slice',  icon: '⚔️', sub: 'Swipe to slice synonyms · 3 lives', color: '#a855f7' },
 ];
 
 function OutlinedText({ style, outlineColor, outlineWidth = 3, children }) {

@@ -2,11 +2,13 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, SafeAreaView, Animated, Modal } from 'react-native';
 import { ANDROID_TOP } from '../utils/androidSafeTop';
 import FloatingWord from '../components/FloatingWord';
-import FallingWord from '../components/FallingWord';
+import CatchyGameArea from '../components/CatchyGameArea';
+import SliceGameArea from '../components/SliceGameArea';
 import { playSound, startMusic, stopMusic, pauseMusic, resumeMusic } from '../utils/audio';
 import { fetchSynonyms } from '../utils/datamuse';
 import { nextWord } from '../utils/wordQueue';
 import { DISTRACTOR_WORDS } from '../constants/wordList';
+import { BLOCKED_WORDS } from '../constants/blocklist';
 import { FALLBACK_SYNONYMS } from '../constants/fallbackSynonyms';
 import { DIFFICULTY } from '../constants/difficulty';
 import { showRewardedAd } from '../utils/admob';
@@ -57,7 +59,8 @@ function ScorePopup({ id, value, onComplete }) {
 export default function GameScreen({ onGameEnd, onBack, totalScore, round, difficulty, mode, hints, onUseHint, onEarnHints, onResetHints, theme, secondChanceAvailable, onSecondChanceUsed }) {
   const config = DIFFICULTY[difficulty] ?? DIFFICULTY.medium;
   const isSurvival = mode === 'survival';
-  const isFalling = mode === 'falling';
+  const isCatchy = mode === 'catchy';
+  const isSlice = mode === 'slice';
 
   const [wordAreaBounds, setWordAreaBounds] = useState({ width: SW, height: WORD_AREA_H });
   const [targetWord, setTargetWord] = useState('');
@@ -70,6 +73,10 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
   const [highlightedId, setHighlightedId] = useState(null);
   const [wordsSolved, setWordsSolved] = useState(0);
   const [countdown, setCountdown] = useState(null);
+
+  const [lives, setLives] = useState(isSlice ? 3 : null);
+  const livesRef = useRef(lives);
+  useEffect(() => { livesRef.current = lives; }, [lives]);
 
   const [scorePopups, setScorePopups] = useState([]);
   const popupCounter = useRef(0);
@@ -129,6 +136,22 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
     return () => clearTimeout(t);
   }, [countdown]);
 
+  // Slice mode: lives = 0 ends the game immediately (no second chance)
+  useEffect(() => {
+    if (!isSlice || lives === null || lives > 0 || done) return;
+    setDone(true);
+    playSound('fail');
+    stopMusic();
+    onGameEnd({ ...buildResult(wordsRef.current, timeLeft), allFound: false });
+  }, [lives, isSlice, done]);
+
+  // Slice mode: one life regenerates every 20 seconds (up to max 3)
+  useEffect(() => {
+    if (!isSlice || lives === null || lives >= 3 || done) return;
+    const timer = setTimeout(() => setLives(prev => Math.min(3, (prev ?? 0) + 1)), 20000);
+    return () => clearTimeout(timer);
+  }, [isSlice, lives, done]);
+
   function buildResult(ws = wordsRef.current, tl = null) {
     return {
       roundScore: roundScoreRef.current,
@@ -157,17 +180,19 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
         synonyms = FALLBACK_SYNONYMS[word] ?? [];
       }
       if (synonyms.length === 0) synonyms = FALLBACK_SYNONYMS[word] ?? [];
-      if (synonyms.length >= config.maxSynonyms) break;
+      const cleanCount = synonyms.filter(w => !BLOCKED_WORDS.has(w.toLowerCase())).length;
+      if (cleanCount >= config.maxSynonyms) break;
       attempts++;
     }
 
     setTargetWord(word);
     targetWordRef.current = word;
 
-    const selected = synonyms.slice(0, config.maxSynonyms);
-    const synonymSet = new Set(synonyms);
+    const cleanSynonyms = synonyms.filter(w => !BLOCKED_WORDS.has(w.toLowerCase()));
+    const selected = cleanSynonyms.slice(0, config.maxSynonyms);
+    const synonymSet = new Set(cleanSynonyms);
     const distractors = DISTRACTOR_WORDS
-      .filter(w => !synonymSet.has(w) && w !== word)
+      .filter(w => !synonymSet.has(w) && w !== word && !BLOCKED_WORDS.has(w.toLowerCase()))
       .sort(() => Math.random() - 0.5)
       .slice(0, config.distractors);
 
@@ -260,6 +285,12 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
     setTimeout(() => setHighlightedId(null), 2000);
   }
 
+  function handleLoseLife() {
+    if (livesRef.current !== null && livesRef.current <= 0) return;
+    setLives(prev => Math.max(0, (prev ?? 0) - 1));
+    playSound('wrong');
+  }
+
   async function handleWatchAd() {
     if (done || adLoading) return;
     setAdLoading(true);
@@ -297,7 +328,8 @@ export default function GameScreen({ onGameEnd, onBack, totalScore, round, diffi
   }
 
   const timerColor = timeLeft <= 10 ? '#ef4444' : timeLeft <= 15 ? '#fb923c' : '#fff';
-const foundCount = words.filter(w => w.isSynonym && w.tapped).length;
+  const modeColor = isSurvival ? '#f43f5e' : isCatchy ? '#22d3ee' : isSlice ? '#a855f7' : config.color;
+  const foundCount = words.filter(w => w.isSynonym && w.tapped).length;
   const totalCount = words.filter(w => w.isSynonym).length;
 
   const themeBg = theme?.bg ?? '#0f0f2e';
@@ -332,8 +364,11 @@ const foundCount = words.filter(w => w.isSynonym && w.tapped).length;
           <Text style={styles.statValue}>{roundScore}</Text>
         </View>
         <View style={styles.targetBox}>
-          <Text style={[styles.roundLabel, { color: isSurvival ? '#f43f5e' : isFalling ? '#22d3ee' : config.color }]}>
-            {isSurvival ? `Survival · ${wordsSolved} solved` : isFalling ? `Falling · Round ${round} · ${config.label}` : `Round ${round} · ${config.label}`}
+          <Text style={[styles.roundLabel, { color: modeColor }]}>
+            {isSurvival ? `Survival · ${wordsSolved} solved`
+             : isCatchy ? `Catchy · Round ${round} · ${config.label}`
+             : isSlice  ? `Slice · ${config.label}`
+             : `Round ${round} · ${config.label}`}
           </Text>
           <Text style={styles.findLabel}>find synonyms for</Text>
           <Text style={styles.targetWord}>{targetWord}</Text>
@@ -360,39 +395,49 @@ const foundCount = words.filter(w => w.isSynonym && w.tapped).length;
 
       <View
         style={styles.wordArea}
-        pointerEvents={countdown !== null ? 'none' : 'box-only'}
-        onStartShouldSetResponder={() => countdown === null}
+        pointerEvents={countdown !== null ? 'none' : (isCatchy || isSlice ? 'box-none' : 'box-only')}
+        onStartShouldSetResponder={() => countdown === null && !isCatchy && !isSlice}
         onResponderGrant={handleAreaTap}
         onLayout={e => setWordAreaBounds({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
       >
-        {words.map(w => isFalling ? (
-          <FallingWord
-            key={w.id}
-            wordId={w.id}
-            word={w.word}
-            tapped={w.tapped}
-            correct={w.correct}
-            highlighted={w.id === highlightedId}
-            screenWidth={wordAreaBounds.width}
-            screenHeight={wordAreaBounds.height}
-            speedMultiplier={config.speedMultiplier}
-            bubbleColor={themeBubble}
-            wordPositionsRef={wordPositionsRef}
-          />
-        ) : (
-          <FloatingWord
-            key={w.id}
-            wordId={w.id}
-            word={w.word}
-            tapped={w.tapped}
-            correct={w.correct}
-            highlighted={w.id === highlightedId}
+        {isCatchy ? (
+          <CatchyGameArea
+            words={words}
+            onWordTapped={handleTap}
             bounds={wordAreaBounds}
             speedMultiplier={config.speedMultiplier}
             bubbleColor={themeBubble}
-            wordPositionsRef={wordPositionsRef}
+            highlightedId={highlightedId}
+            paused={countdown !== null || done || showQuitModal || adLoading}
           />
-        ))}
+        ) : isSlice ? (
+          <SliceGameArea
+            words={words}
+            onWordTapped={handleTap}
+            onLoseLife={handleLoseLife}
+            lives={lives ?? 3}
+            bounds={wordAreaBounds}
+            maxConcurrent={difficulty === 'easy' ? 2 : difficulty === 'hard' ? 5 : 3}
+            bubbleColor={themeBubble}
+            highlightedId={highlightedId}
+            paused={countdown !== null || done || showQuitModal || adLoading}
+          />
+        ) : (
+          words.map(w => (
+            <FloatingWord
+              key={w.id}
+              wordId={w.id}
+              word={w.word}
+              tapped={w.tapped}
+              correct={w.correct}
+              highlighted={w.id === highlightedId}
+              bounds={wordAreaBounds}
+              speedMultiplier={config.speedMultiplier}
+              bubbleColor={themeBubble}
+              wordPositionsRef={wordPositionsRef}
+            />
+          ))
+        )}
         {countdown !== null && (
           <View style={styles.countdownOverlay} pointerEvents="none">
             <Animated.Text

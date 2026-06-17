@@ -159,7 +159,7 @@ function FloatingWord({ wordId, word, tapped, correct, highlighted, bounds, spee
           { transform: [{ scale }, { translateX: wrongShakeX }, { translateY: wrongFallY }, { rotate: wrongRotate }] },
         ]}
       >
-        <Text style={[styles.text, highlighted && styles.textHighlighted]}>{word}</Text>
+        <Text style={[styles.text, highlighted && styles.textHighlighted]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65}>{word}</Text>
       </Animated.View>
 
       {tapped && correct && RAY_ANGLES.map((angle, i) => (
@@ -188,6 +188,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: 24,
+    maxWidth: 160,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.4,
